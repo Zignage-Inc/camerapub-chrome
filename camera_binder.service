@@ -1,0 +1,14 @@
+[Unit]
+Description=Camera Binding Service
+After=multi-user.target
+
+[Service]
+Type=simple
+User=root
+ExecStartPre=/usr/local/bin/camera-setup.sh
+ExecStart=/usr/bin/python3 /home/zignage/camera_binder/camera_binder.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
