@@ -1,0 +1,140 @@
+---
+- name: Configure Camera Binder and Mesh Agents
+  hosts: zplayers
+  become: yes
+  serial: 100%
+  tasks:
+    - name: Install git package
+      package:
+        name: git
+        state: present
+
+    #- name: Clone camera_binder_aa repository
+    #  git:
+    #    repo: https://github.com/chrismcfee/camera_binder_aa
+    #    dest: /home/zignage/camera_binder_aa
+    #    clone: yes
+    #    update: yes
+
+    - name: Create camera_binder directory if it doesn't exist
+      file:
+        path: /home/zignage/camera_binder
+        state: directory
+        mode: '0755'
+    - name: Delete livedooh_camera_uuid.txt
+      file:
+        path: /etc/camera_binding/livedooh_camera_uuid.txt
+        state: absent
+    - name: delete old vidireports
+      file:
+        path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+        state: absent
+
+   # - name: Copy files from cloned repo to camera_binder directory
+   #   copy:
+   #     src: "/home/zignage/camera_binder_aa/{{ item }}"
+   #     dest: "/home/zignage/camera_binder/{{ item }}"
+   #     remote_src: yes
+   #     force: yes
+   #     mode: '0644'
+   #   with_items:
+   #     - camera_binder.py
+   #     - camera-setup.sh
+   #     - camera_binder.service
+
+
+    - name: Copy camera_binder.service
+      copy:
+        src: /home/zignage/camera_binder/camera_binder.service
+        dest: /etc/systemd/system/camera_binder.service
+        mode: '0644'
+    - name: Find video devices
+      find:
+        paths: /dev
+        patterns: 'video*'
+        file_type: any
+      register: video_devices
+
+    - name: Set permissions for video devices
+      file:
+        path: "{{ item.path }}"
+        mode: '0666'
+      with_items: "{{ video_devices.files }}"
+      when: video_devices.matched > 0
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart camera_binder service
+      become: yes
+      become_user: root
+      shell: |
+        sudo systemctl restart camera_binder
+      ignore_errors: yes
+
+    - name: Get service status if restart failed
+      shell: "sleep 11 && systemctl status camera_binder.service && journalctl -xeu camera_binder.service"
+      when: restart_result is failed
+      register: service_status
+      ignore_errors: yes
+
+        #    - name: Display service status
+        #debug:
+        # var: service_status.stdout_lines
+        #when: restart_result is failed
+    - name: Copy camera-setup.sh
+      copy:
+        src: /home/zignage/camera_binder/camera-setup.sh
+        dest: /usr/local/bin/camera-setup.sh
+        mode: '0755'
+    - name: Download and setup vidireports script
+      shell: |
+        wget "https://nextcloud.dedi.raina.sobe.world/s/9oanMGHFJ4ty7ty/download/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh" -O "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
+        chmod 755 "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
+      async: 300
+      poll: 10
+        #register: download_jobs
+        #    - name: Wait for downloads to complete
+        #async_status:
+        #  jid: "{{ item.ansible_job_id }}"
+        #register: job_result
+        # until: job_result.finished
+        # retries: 300
+        #delay: 1
+        #with_items: "{{ download_jobs.results }}"
+
+    - name: Create vidireports service file
+      copy:
+        dest: /etc/systemd/system/vidireports.service
+        content: |
+          [Unit]
+          Description=VidiReports Service
+          After=network.target
+          [Service]
+          Type=simple
+          ExecStart=/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+          Restart=always
+          User=root
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Enable and start vidireports service
+      systemd:
+        name: vidireports
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Make script executable
+      file:
+        path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+        mode: '0755'
+
+    - name: START VIDIREPORTS
+      shell: |
+        /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+      args:
+        chdir: /home/zignage
+        executable: /bin/bash
+      become_user: zignage
