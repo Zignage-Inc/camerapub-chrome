@@ -130,11 +130,3 @@
       file:
         path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
         mode: '0755'
-
-    - name: START VIDIREPORTS
-      shell: |
-        /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
-      args:
-        chdir: /home/zignage
-        executable: /bin/bash
-      become_user: zignage
