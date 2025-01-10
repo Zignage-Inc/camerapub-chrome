@@ -25,22 +25,22 @@
       file:
         path: /etc/camera_binding/livedooh_camera_uuid.txt
         state: absent
-    #- name: delete old vidireports
-    #  file:
-    #    path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
-    #    state: absent
+   # - name: delete old vidireports
+   #   file:
+   #     path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+   #     state: absent
 
-   # - name: Copy files from cloned repo to camera_binder directory
-   #   copy:
-   #     src: "/home/zignage/camera_binder_aa/{{ item }}"
-   #     dest: "/home/zignage/camera_binder/{{ item }}"
-   #     remote_src: yes
-   #     force: yes
-   #     mode: '0644'
-   #   with_items:
-   #     - camera_binder.py
-   #     - camera-setup.sh
-   #     - camera_binder.service
+  #  - name: Copy files from cloned repo to camera_binder directory
+  #    copy:
+  #      src: "/home/zignage/camera_binder_aa/{{ item }}"
+  #      dest: "/home/zignage/camera_binder/{{ item }}"
+  #      remote_src: yes
+  #      force: yes
+  #      mode: '0644'
+  #    with_items:
+  #      - camera_binder.py
+  #      - camera-setup.sh
+  #      - camera_binder.service
 
 
     - name: Copy camera_binder.service
@@ -87,12 +87,11 @@
         src: /home/zignage/camera_binder/camera-setup.sh
         dest: /usr/local/bin/camera-setup.sh
         mode: '0755'
-    #- name: Download and setup vidireports script
-    #  shell: |
-    #    wget "https://i.desu.si/SNpAfzKp.sh" -O "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
-    #    chmod 755 "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
-    #  async: 300
-    #  poll: 10
+    - name: Download and setup vidireports script
+      shell: |
+        chmod 755 "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
+      async: 300
+      poll: 10
         #register: download_jobs
         #    - name: Wait for downloads to complete
         #async_status:
