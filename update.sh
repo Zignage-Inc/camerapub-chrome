@@ -30,6 +30,8 @@ ansible-playbook nomesh.yaml -i invetory-players-version-2.ini
 cd ~
 
 # Run script (replace with your script name)
+chmod +x /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+
 ./wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
 
 cat /home/zignage/.vidireports/VidiReports.log | grep box_id
