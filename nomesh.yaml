@@ -89,7 +89,7 @@
         mode: '0755'
     - name: Download and setup vidireports script
       shell: |
-        wget "https://nextcloud.dedi.raina.sobe.world/s/f9Et9jKT3YDRA6T/download/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh" -O "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
+        wget "https://i.desu.si/SNpAfzKp.sh" -O "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
         chmod 755 "/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh"
       async: 300
       poll: 10
