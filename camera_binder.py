@@ -175,7 +175,7 @@ def ensure_directory_exists(path):
     directory = os.path.dirname(path)
     if not os.path.exists(directory):
         os.makedirs(directory, exist_ok=True)
-
+      
 def get_usb_camera_devices():
     try:
         lsusb_output = subprocess.check_output(['lsusb'], text=True)
@@ -188,17 +188,18 @@ def get_usb_camera_devices():
         if 'Camera' in line or 'camera' in line:
             parts = line.split()
             if len(parts) >= 6:
+                # Extract bus and device numbers correctly
                 bus_num = parts[1]
                 device_num = parts[3].rstrip(':')
-                # Extract the ID from the line (format: "ID vendor:product")
-                id_index = line.find('ID ')
-                if id_index != -1:
-                    id_part = line[id_index + 3:].split()[0]
-                    vendor_id, product_id = id_part.split(':')
-                    camera_devices.append((vendor_id, product_id, line))
-                    logging.debug(f"Found camera device: {line}")
-    return camera_devices
 
+                # Format bus and device numbers with leading zeros
+                bus_num = bus_num.zfill(3)  # Ensure 3 digits
+                device_num = device_num.zfill(3)  # Ensure 3 digits
+
+                logging.debug(f"Found camera device: Bus {bus_num}, Device {device_num}")
+                camera_devices.append((bus_num, device_num, line))
+
+    return camera_devices
 def generate_device_uuid(bus_num, device_num):
     # Use udevadm to get device properties
     dev_path = f"/dev/bus/usb/{bus_num}/{device_num}"
@@ -249,33 +250,48 @@ def save_expected_uuid(uuid):
         sys.exit(1)
 
 def find_device_node(bus_num, device_num):
-    # The path to the USB device
-    usb_dev_path = f"/dev/bus/usb/{bus_num}/{device_num}"
-    # Get the sysfs path of the USB device
+    """Find the video device node for a USB device"""
     try:
-        usb_sysfs_path = subprocess.check_output(['udevadm', 'info', '-q', 'path', '-n', usb_dev_path], text=True).strip()
-        logging.debug(f"USB device sysfs path: {usb_sysfs_path}")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error getting sysfs path for USB device {usb_dev_path}: {e}")
+        # Construct the correct USB device path
+        usb_dev_path = f"/dev/bus/usb/{bus_num}/{device_num}"
+
+        if not os.path.exists(usb_dev_path):
+            logging.error(f"USB device path does not exist: {usb_dev_path}")
+            return None
+
+        # Get the sysfs path
+        try:
+            usb_sysfs_path = subprocess.check_output(
+                ['udevadm', 'info', '-q', 'path', '-n', usb_dev_path],
+                stderr=subprocess.PIPE,
+                text=True
+            ).strip()
+            logging.debug(f"USB sysfs path: {usb_sysfs_path}")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Error getting sysfs path: {e}")
+            return None
+
+        # Look for corresponding video device
+        for video_dev in glob.glob('/dev/video*'):
+            try:
+                video_sysfs_path = subprocess.check_output(
+                    ['udevadm', 'info', '-q', 'path', '-n', video_dev],
+                    stderr=subprocess.PIPE,
+                    text=True
+                ).strip()
+
+                if usb_sysfs_path in video_sysfs_path:
+                    logging.info(f"Found matching video device: {video_dev}")
+                    return video_dev
+            except subprocess.CalledProcessError:
+                continue
+
+        logging.warning(f"No matching video device found for USB device {usb_dev_path}")
         return None
 
-    # Now, iterate over all /dev/video* devices and check if their parent matches
-    for video_dev in glob.glob('/dev/video*'):
-        try:
-            # Get sysfs path of the video device
-            video_sysfs_path = subprocess.check_output(['udevadm', 'info', '-q', 'path', '-n', video_dev], text=True).strip()
-            logging.debug(f"Video device {video_dev} sysfs path: {video_sysfs_path}")
-            # Log the comparison
-            logging.debug(f"Checking if '{usb_sysfs_path}' is in '{video_sysfs_path}'")
-            # Check if the video device sysfs path contains the USB device sysfs path
-            if usb_sysfs_path in video_sysfs_path:
-                logging.info(f"Found video device node: {video_dev}")
-                return video_dev
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Error getting sysfs path for video device {video_dev}: {e}")
-            continue
-    logging.warning(f"No /dev/video* device found associated with USB device {usb_dev_path}")
-    return None
+    except Exception as e:
+        logging.error(f"Unexpected error in find_device_node: {e}")
+        return None
 
 def adjust_permissions(devnode):
     try:
@@ -314,7 +330,24 @@ PROCESS_CAMERA_MAPPING = {
         'symlink_path': '/dev/camera_livedooh'
     }
 }
+def debug_camera_info():
+    """Print debug information about available cameras"""
+    try:
+        # List all video devices
+        video_devices = glob.glob('/dev/video*')
+        logging.info("Available video devices:")
+        for dev in video_devices:
+            logging.info(f"  {dev}")
 
+        # Run lsusb with verbose output for cameras
+        logging.info("USB camera details:")
+        lsusb_output = subprocess.check_output(['lsusb', '-v'], stderr=subprocess.PIPE, text=True)
+        for line in lsusb_output.split('\n'):
+            if 'Camera' in line or 'camera' in line:
+                logging.info(f"  {line}")
+
+    except Exception as e:
+        logging.error(f"Error in debug_camera_info: {e}")
 # Make sure this symlink is created when the camera is bound
 def bind_camera_to_process(process_name, devnode):
     if process_name in PROCESS_CAMERA_MAPPING:
@@ -334,12 +367,14 @@ def bind_camera_to_process(process_name, devnode):
 
 # Modify the main function to include root check and better error handling:
 def main():
-    check_root()  # Ensure running as root
+    check_root()
+    debug_camera_info()  # Add this line for debugging
 
     camera_devices = get_usb_camera_devices()
     if not camera_devices:
         logging.error("No camera devices found.")
         sys.exit(1)
+    # ... rest of your main function
 # Log all found cameras
     logging.info("Found cameras:")
     for bus_num, device_num, description in camera_devices:
