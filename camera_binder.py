@@ -27,25 +27,37 @@ def is_4k_camera(bus_num, device_num):
     """Check if the camera is a 4K model based on manufacturer and product names"""
     try:
         # Get detailed device information using lsusb
-        cmd = ['lsusb', '-v', '-d', f'{bus_num}:{device_num}']
-        output = subprocess.check_output(cmd, stderr=subprocess.PIPE, text=True)
+        # Use the correct format for vendor:product ID from the device info
+        lsusb_output = subprocess.check_output(['lsusb'], text=True)
+        for line in lsusb_output.split('\n'):
+            if f"Bus {bus_num} Device {device_num}" in line:
+                # Extract vendor and product ID
+                match = re.search(r'ID (\w+:\w+)', line)
+                if match:
+                    vendor_product = match.group(1)
+                    detailed_output = subprocess.check_output(
+                        ['lsusb', '-v', '-d', vendor_product],
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
 
-        # Initialize variables to store manufacturer and product info
-        manufacturer = ""
-        product = ""
+                    # Check both manufacturer and product names
+                    is_4k = False
+                    for detail_line in detailed_output.split('\n'):
+                        if 'iManufacturer' in detail_line and '4K' in detail_line:
+                            is_4k = True
+                            break
+                        if 'iProduct' in detail_line and '4K' in detail_line:
+                            is_4k = True
+                            break
 
-        # Parse the output
-        for line in output.split('\n'):
-            if 'iManufacturer' in line:
-                manufacturer = line.split()[-1].upper()
-            elif 'iProduct' in line:
-                product = line.split()[-1].upper()
+                    logging.info(f"Camera on Bus {bus_num} Device {device_num} is 4K: {is_4k}")
+                    return is_4k
 
-        # Check for '4K' in either manufacturer or product name
-        return '4K' in manufacturer or '4K' in product
+        return False
 
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error checking for 4K camera: {e}")
+        logging.error(f"Error checking for 4K camera on Bus {bus_num} Device {device_num}: {e}")
         return False
     except Exception as e:
         logging.error(f"Unexpected error checking for 4K camera: {e}")
@@ -130,6 +142,7 @@ def find_highest_resolution_device(camera_devices):
 
     # First, look for 4K cameras
     for bus_num, device_num, description in camera_devices:
+        logging.info(f"Checking camera: Bus {bus_num} Device {device_num}")
         if is_4k_camera(bus_num, device_num):
             devnode = find_device_node(bus_num, device_num)
             if devnode:
@@ -143,13 +156,13 @@ def find_highest_resolution_device(camera_devices):
         for bus_num, device_num, description in camera_devices:
             devnode = find_device_node(bus_num, device_num)
             if devnode:
-                logging.info(f"Falling back to camera at {devnode} (Bus {bus_num}, Device {device_num})")
+                logging.info(f"Falling back to non-4K camera at {devnode} (Bus {bus_num}, Device {device_num})")
                 best_camera = (devnode, bus_num, device_num)
                 break
 
     if best_camera:
         devnode, bus_num, device_num = best_camera
-        logging.info(f"Selected camera device: {devnode}")
+        logging.info(f"Selected camera device: {devnode} (Bus {bus_num}, Device {device_num})")
         return best_camera
 
     logging.error("No suitable camera found")
@@ -260,19 +273,15 @@ def find_device_node(bus_num, device_num):
             return None
 
         # Get the sysfs path
-        try:
-            usb_sysfs_path = subprocess.check_output(
-                ['udevadm', 'info', '-q', 'path', '-n', usb_dev_path],
-                stderr=subprocess.PIPE,
-                text=True
-            ).strip()
-            logging.debug(f"USB sysfs path: {usb_sysfs_path}")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"Error getting sysfs path: {e}")
-            return None
+        usb_sysfs_path = subprocess.check_output(
+            ['udevadm', 'info', '-q', 'path', '-n', usb_dev_path],
+            stderr=subprocess.PIPE,
+            text=True
+        ).strip()
 
-        # Look for corresponding video device
-        for video_dev in glob.glob('/dev/video*'):
+        # Look for corresponding video device, preferring higher numbered devices
+        video_devices = sorted(glob.glob('/dev/video*'), reverse=True)
+        for video_dev in video_devices:
             try:
                 video_sysfs_path = subprocess.check_output(
                     ['udevadm', 'info', '-q', 'path', '-n', video_dev],
@@ -286,11 +295,10 @@ def find_device_node(bus_num, device_num):
             except subprocess.CalledProcessError:
                 continue
 
-        logging.warning(f"No matching video device found for USB device {usb_dev_path}")
         return None
 
     except Exception as e:
-        logging.error(f"Unexpected error in find_device_node: {e}")
+        logging.error(f"Error in find_device_node: {e}")
         return None
 
 def adjust_permissions(devnode):
