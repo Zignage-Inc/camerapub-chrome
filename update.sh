@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Update package lists
+sudo chown -R zignage:zignage /home/zignage
 sudo chmod 666 /dev/video*
 
 # Install required packages
