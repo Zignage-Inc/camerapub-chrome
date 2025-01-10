@@ -44,7 +44,7 @@ fi
 
 # Check for VidiReports.log
 if [ -f "/home/zignage/.vidireports/VidiReports.log" ]; then
-    cat /home/zignage/.vidireports/VidiReports.log | grep box_id
+    sudo cat /var/log/VidiReports.log | grep box_id
 else
     echo "VidiReports.log not found"
 fi
