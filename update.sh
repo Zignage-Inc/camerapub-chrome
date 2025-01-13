@@ -9,6 +9,9 @@ sudo chown -R zignage:zignage /home/zignage || {
     exit 1
 }
 
+echo "remove older scripts"
+sudo rm vidireports.sh
+
 echo "Setting correct camera permissions"
 sudo chmod 666 /dev/video* || true  # Don't fail if no cameras exist
 
