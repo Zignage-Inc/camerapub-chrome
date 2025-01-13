@@ -9,8 +9,9 @@ sudo chown -R zignage:zignage /home/zignage || {
     exit 1
 }
 
-echo "remove older scripts"
-sudo rm vidireports.sh
+if ! sudo rm vidireports.sh; then
+    echo "Script continuing"
+fi
 
 echo "Setting correct camera permissions"
 sudo chmod 666 /dev/video* || true  # Don't fail if no cameras exist
@@ -82,6 +83,7 @@ sudo rm -rf /home/zignage/.vidireports
 sudo rm -rf /etc/vidireports
 sudo rm -rf /opt/vidireports
 echo "FINISHED CLEANUP TASKS"
+
 
 # Check if the bundle file exists before trying to execute it
 if [ -f "wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh" ]; then
