@@ -21,7 +21,6 @@ command -v sudo >/dev/null 2>&1 || { echo "sudo is required but not installed. A
 
 # Install required packages
 echo "Installing required packages..."
-sudo apt-get update
 sudo apt-get install -y sshpass ansible git || {
     echo "Failed to install required packages"
     exit 1
