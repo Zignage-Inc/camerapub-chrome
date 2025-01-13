@@ -95,5 +95,8 @@ echo "waited long enough"
 if [ -f "/home/zignage/.vidireports/VidiReports.log" ]; then
     cat /home/zignage/.vidireports/VidiReports.log | grep box_id
 else
-    echo "VidiReports.log not found"
+    echo "VidiReports.log not found in home directory. Checking alternate location:"
+    sleep 2s
 fi
+
+cat /etc/vidireports/instance0.cfg | grep BoxID
