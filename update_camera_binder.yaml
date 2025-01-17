@@ -4,114 +4,111 @@
   become: yes
   serial: 100%
   tasks:
-    - name: Install git package
-      package:
-        name: git
-        state: present
-
-    - name: Create camera_binder directory if it doesn't exist
-      file:
-        path: /home/zignage/camera_binder
-        state: directory
-        mode: '0755'
-
-    - name: Delete livedooh_camera_uuid.txt
-      file:
-        path: /etc/camera_binding/livedooh_camera_uuid.txt
-        state: absent
-
-    - name: Delete vidireports_camera_uuid.txt
-      file:
-        path: /etc/camera_binding/vidireports_camera_uuid.txt
-        state: absent
-
-    - name: Copy camera_binder.service
-      copy:
-        src: /home/zignage/camerapub/camera_binder.service
-        dest: /etc/systemd/system/camera_binder.service
-        remote_src: yes
-        force: yes
-        mode: '0644'
-
-    - name: Copy camera_binder.py
-      copy:
-        src: /home/zignage/camerapub/camera_binder.py
-        dest: /home/zignage/camera_binder/camera_binder.py
-        remote_src: yes
-        force: yes
-        mode: '0644'
-
-    - name: Copy udev rules
-      copy:
-        src: /home/zignage/camerapub/camera-permissions.rules
-        dest: /etc/udev/rules.d/99-camera-permissions.rules
-        remote_src: yes
-        force: yes
-        mode: '0644'
-
-    - name: Copy camera config
-      copy:
-        src: /home/zignage/camerapub/camera_config.json
-        dest: /etc/camera_binding/camera_config.json
-        remote_src: yes
-        force: yes
-        mode: '0644'
-
-    - name: Copy camera-setup.sh
-      copy:
-        src: /home/zignage/camerapub/camera-setup.sh
-        dest: /usr/local/bin/camera-setup.sh
-        mode: '0755'
-
-    - name: Apply udev rules and permissions
+    - name: Clean up old files and configurations
       block:
-        - name: Reload udev rules
-          shell: |
-            udevadm control --reload-rules
-            udevadm trigger
+        - name: Remove old UUID files
+          file:
+            path: "{{ item }}"
+            state: absent
+          with_items:
+            - /etc/camera_binding/livedooh_camera_uuid.txt
+            - /etc/camera_binding/vidireports_camera_uuid.txt
 
+        - name: Remove old symlinks
+          file:
+            path: "{{ item }}"
+            state: absent
+          with_items:
+            - /dev/camera_livedooh
+            - /dev/camera_vidireports
+            - /dev/camera_4k
+            - /dev/camera_1080p
+
+        - name: Reset video device permissions
+          shell: |
+            chmod 660 /dev/video* || true
+            chown root:video /dev/video* || true
+
+    - name: Copy configuration files
+      block:
+        - name: Copy camera_binder.service
+          copy:
+            src: /home/zignage/camerapub/camera_binder.service
+            dest: /etc/systemd/system/camera_binder.service
+            mode: '0644'
+            force: yes
+
+        - name: Copy camera_config.json
+          copy:
+            src: /home/zignage/camerapub/camera_config.json
+            dest: /etc/camera_binding/camera_config.json
+            mode: '0644'
+            force: yes
+
+        - name: Copy udev rules
+          copy:
+            src: /home/zignage/camerapub/camera-permissions.rules
+            dest: /etc/udev/rules.d/99-camera-permissions.rules
+            mode: '0644'
+            force: yes
+
+    - name: Apply system configurations
+      block:
         - name: Ensure zignage user is in video group
           user:
             name: zignage
             groups: video
             append: yes
 
-        - name: Set correct permissions on video devices
+        - name: Reload udev rules
           shell: |
-            chmod 660 /dev/video*
-            chown root:video /dev/video*
+            udevadm control --reload-rules
+            udevadm trigger
 
-        - name: Set correct permissions on camera symlinks
-          shell: |
-            chmod 660 /dev/camera*
-            chown root:video /dev/camera*
-          ignore_errors: yes  # In case symlinks don't exist yet
+        - name: Wait for udev
+          pause:
+            seconds: 2
 
-        - name: Set config file permissions
-          file:
-            path: /etc/camera_binding/camera_config.json
-            owner: root
-            group: root
-            mode: '0644'
+        - name: Verify video devices
+          shell: ls -l /dev/video*
+          register: video_devices
+          ignore_errors: yes
 
-        - name: Reload systemd daemon
+        - name: Display video devices
+          debug:
+            var: video_devices.stdout_lines
+
+        - name: Reload systemd
           systemd:
             daemon_reload: yes
 
-        - name: Restart camera_binder service
+        - name: Restart camera_binder
           systemd:
             name: camera_binder
             state: restarted
 
-    - name: Wait for service to start
-      pause:
-        seconds: 5
+        - name: Wait for service
+          pause:
+            seconds: 5
 
-    - name: Check service status
-      shell: "systemctl status camera_binder.service"
-      register: service_status
-      ignore_errors: yes
+        - name: Check service status
+          shell: "systemctl status camera_binder.service"
+          register: service_status
+          ignore_errors: yes
 
-    - name: Display service status
-      debug:
-        var: service_status.stdout_lines
+        - name: Display service status
+          debug:
+            var: service_status.stdout_lines
+
+        - name: Check final device permissions
+          shell: |
+            echo "Video devices:"
+            ls -l /dev/video*
+            echo "Camera symlinks:"
+            ls -l /dev/camera*
+          register: final_check
+          ignore_errors: yes
+
+        - name: Display final check
+          debug:
+            var: final_check.stdout_lines
