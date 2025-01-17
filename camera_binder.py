@@ -407,6 +407,26 @@ def setup_camera_permissions(devnode, process_name):
     except Exception as e:
         logging.error(f"Error setting camera permissions: {e}")
 
+def is_device_allowed(devnode, process_name):
+    """Check if this device should be allowed for this process"""
+    config = PROCESS_CAMERA_MAPPING.get(process_name, {})
+    only_4k = config.get('only_4k', False)
+    allow_4k = config.get('allow_4k', False)
+
+    # Get the device's bus and device numbers
+    try:
+        device_path = os.path.realpath(devnode)  # Resolve any existing symlinks
+        is_4k = is_4k_camera(bus_num, device_num)
+
+        if only_4k:
+            return is_4k
+        if not allow_4k and is_4k:
+            return False
+        return True
+    except Exception as e:
+        logging.error(f"Error checking device permissions: {e}")
+        return False
+
 
 def main():
     check_root()
