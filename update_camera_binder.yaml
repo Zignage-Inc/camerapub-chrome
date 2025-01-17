@@ -4,62 +4,72 @@
   become: yes
   serial: 100%
   tasks:
+    # 1. Initial Diagnostic Check
+    - name: Initial system check
+      block:
+        - name: Check initial state
+          shell: |
+            echo "=== Initial Video Devices ==="
+            ls -l /dev/video*
+            echo "=== Initial Camera Symlinks ==="
+            ls -l /dev/camera* || true
+            echo "=== Initial Groups ==="
+            groups zignage
+          register: initial_state
+          ignore_errors: yes
+
+        - name: Display initial state
+          debug:
+            var: initial_state.stdout_lines
+
+    # 2. Cleanup Phase
     - name: Clean up old files and configurations
       block:
-        - name: Remove old UUID files
+        - name: Stop services
+          systemd:
+            name: "{{ item }}"
+            state: stopped
+          with_items:
+            - vidireports
+            - camera_binder
+
+        - name: Remove old UUID files and symlinks
           file:
             path: "{{ item }}"
             state: absent
           with_items:
             - /etc/camera_binding/livedooh_camera_uuid.txt
             - /etc/camera_binding/vidireports_camera_uuid.txt
-
-        - name: Remove old symlinks
-          file:
-            path: "{{ item }}"
-            state: absent
-          with_items:
             - /dev/camera_livedooh
             - /dev/camera_vidireports
             - /dev/camera_4k
             - /dev/camera_1080p
 
+    # 3. Copy Configuration Files
     - name: Copy configuration files
       block:
-        - name: Copy camera_binder.service
+        - name: Copy service files
           copy:
-            src: /home/zignage/camerapub/camera_binder.service
-            dest: /etc/systemd/system/camera_binder.service
+            src: "/home/zignage/camerapub/{{ item.src }}"
+            dest: "/etc/systemd/system/{{ item.dest }}"
             mode: '0644'
             force: yes
+          with_items:
+            - { src: 'camera_binder.service', dest: 'camera_binder.service' }
+            - { src: 'vidireports.service', dest: 'vidireports.service' }
 
-        - name: Copy vidireports.service
+        - name: Copy other configuration files
           copy:
-            src: /home/zignage/camerapub/vidireports.service
-            dest: /etc/systemd/system/vidireports.service
-            mode: '0644'
+            src: "/home/zignage/camerapub/{{ item.src }}"
+            dest: "{{ item.dest }}"
+            mode: "{{ item.mode }}"
             force: yes
+          with_items:
+            - { src: 'camera_binder.py', dest: '/home/zignage/camera_binder/camera_binder.py', mode: '0644' }
+            - { src: 'camera_config.json', dest: '/etc/camera_binding/camera_config.json', mode: '0644' }
+            - { src: 'camera-permissions.rules', dest: '/etc/udev/rules.d/99-camera-permissions.rules', mode: '0644' }
 
-        - name: Copy camera_binder.py
-          copy:
-            src: /home/zignage/camerapub/camera_binder.py
-            dest: /home/zignage/camera_binder/camera_binder.py
-            force: yes
-
-        - name: Copy camera_config.json
-          copy:
-            src: /home/zignage/camerapub/camera_config.json
-            dest: /etc/camera_binding/camera_config.json
-            mode: '0644'
-            force: yes
-
-        - name: Copy udev rules
-          copy:
-            src: /home/zignage/camerapub/camera-permissions.rules
-            dest: /etc/udev/rules.d/99-camera-permissions.rules
-            mode: '0644'
-            force: yes
-
+    # 4. Configure System Permissions
     - name: Configure system and permissions
       block:
         - name: Ensure zignage user is in video group
@@ -68,10 +78,13 @@
             groups: video
             append: yes
 
-        - name: Set correct permissions on video devices
+        - name: Set video device permissions
           shell: |
-            chmod 660 /dev/video*
-            chown root:video /dev/video*
+            for dev in /dev/video*; do
+              chmod 0660 "$dev"
+              chown root:video "$dev"
+              echo "Set permissions for $dev"
+            done
           ignore_errors: yes
 
         - name: Set camera_binding permissions
@@ -82,110 +95,8 @@
             chmod 644 /etc/camera_binding/camera_config.json
           ignore_errors: yes
 
-        - name: Reload udev rules
-          shell: |
-            udevadm control --reload-rules
-            udevadm trigger
-
-        - name: Wait for udev rules to apply
-          pause:
-            seconds: 2
-
-        - name: Create required symlinks
-          file:
-            src: "{{ item.src }}"
-            dest: "{{ item.dest }}"
-            state: link
-            owner: root
-            group: video
-            force: yes
-          with_items:
-            - { src: '/dev/video0', dest: '/dev/camera_4k' }
-            - { src: '/dev/video2', dest: '/dev/camera_1080p' }
-            - { src: '/dev/video0', dest: '/dev/camera_livedooh' }
-            - { src: '/dev/video2', dest: '/dev/camera_vidireports' }
-
-    - name: Restart services and verify
-      block:
-        - name: Stop services
-          systemd:
-            name: "{{ item }}"
-            state: stopped
-          with_items:
-            - vidireports
-            - camera_binder
-
-        - name: Wait for services to stop
-          pause:
-            seconds: 2
-
-        - name: Reload udev rules
-          shell: |
-            udevadm control --reload-rules
-            udevadm trigger
-
-        - name: Wait for udev
-          pause:
-            seconds: 2
-
-        - name: Start services
-          systemd:
-            name: "{{ item }}"
-            state: started
-            daemon_reload: yes
-          with_items:
-            - camera_binder
-            - vidireports
-
-        - name: Wait for services to start
-          pause:
-            seconds: 5
-
-        - name: Verify final setup
-          shell: |
-            echo "Video devices:"
-            ls -l /dev/video*
-            echo "Camera symlinks:"
-            ls -l /dev/camera*
-            echo "Service status:"
-            systemctl status camera_binder.service
-            systemctl status vidireports.service
-          register: final_check
-          ignore_errors: yes
-
-        - name: Display final verification
-          debug:
-            var: final_check.stdout_lines
-    - name: Diagnostic checks
-      block:
-        - name: Check vidireports process owner
-          shell: ps aux | grep vidireports
-          register: process_check
-
-        - name: Display process info
-          debug:
-            var: process_check.stdout_lines
-
-        - name: Check user groups
-          shell: |
-            echo "zignage groups:"
-            groups zignage
-          register: group_check
-
-        - name: Display group info
-          debug:
-            var: group_check.stdout_lines
-
-        - name: Check device permissions before restart
-          shell: |
-            ls -l /dev/video*
-            ls -l /dev/camera*
-          register: perm_check
-
-        - name: Display permission info
-          debug:
-            var: perm_check.stdout_lines
-    - name: Check vidireports configuration
+    # 5. Configure vidireports
+    - name: Configure vidireports
       block:
         - name: Ensure vidireports config directory exists
           file:
@@ -205,3 +116,81 @@
             owner: zignage
             group: zignage
             mode: '0644'
+
+    # 6. Apply udev rules and create symlinks
+    - name: Apply udev rules and create symlinks
+      block:
+        - name: Reload udev rules
+          shell: |
+            udevadm control --reload-rules
+            udevadm trigger
+
+        - name: Wait for udev
+          pause:
+            seconds: 2
+
+        - name: Create camera symlinks
+          file:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+            state: link
+            owner: root
+            group: video
+            force: yes
+          with_items:
+            - { src: '/dev/video0', dest: '/dev/camera_4k' }
+            - { src: '/dev/video2', dest: '/dev/camera_1080p' }
+            - { src: '/dev/video0', dest: '/dev/camera_livedooh' }
+            - { src: '/dev/video2', dest: '/dev/camera_vidireports' }
+
+    # 7. Start services and verify
+    - name: Start services and verify
+      block:
+        - name: Reload systemd
+          systemd:
+            daemon_reload: yes
+
+        - name: Start services
+          systemd:
+            name: "{{ item }}"
+            state: restarted
+          with_items:
+            - camera_binder
+            - vidireports
+
+        - name: Wait for services
+          pause:
+            seconds: 5
+
+        # 8. Final verification
+        - name: Verify final setup
+          shell: |
+            echo "=== Video Devices ==="
+            ls -l /dev/video*
+            echo "=== Camera Symlinks ==="
+            ls -l /dev/camera*
+            echo "=== Process Status ==="
+            ps aux | grep vidireports
+            echo "=== Service Status ==="
+            systemctl status vidireports
+            systemctl status camera_binder
+            echo "=== User Groups ==="
+            groups zignage
+            echo "=== Permissions ==="
+            getfacl /dev/video*
+            echo "=== Logs ==="
+            journalctl -n 20 -u vidireports
+          register: final_verification
+          ignore_errors: yes
+
+        - name: Display final verification
+          debug:
+            var: final_verification.stdout_lines
+
+        - name: Check for errors
+          fail:
+            msg: "Setup verification failed"
+          when: >
+            final_verification.stdout is search("Failed") or
+            final_verification.stdout is search("error")
+          ignore_errors: yes
