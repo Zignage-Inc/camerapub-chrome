@@ -21,6 +21,9 @@
         - name: Display initial state
           debug:
             var: initial_state.stdout_lines
+        - name: Stop and kill all the vidireports stuff NOW
+          shell: | 
+            sudo systemctl stop vidireports && sudo killall vidireports-bin || true && echo "start service manually unless the next playbook is run"
 
     # 2. Cleanup Phase
     - name: Clean up old files and configurations
