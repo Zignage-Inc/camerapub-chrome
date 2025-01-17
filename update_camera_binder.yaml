@@ -87,17 +87,12 @@
       ignore_errors: no
 
 
-    - name: Restart camera_binder service
+    - name: pt2
       become: yes
       become_user: root
       shell: |
         sudo udevadm trigger
       ignore_errors: no
-
-        sudo udevadm control --reload-rules
-        sudo udevadm trigger
-      
-
         
     - name: Find video devices
       find:
@@ -121,8 +116,19 @@
       shell: |
         sudo usermod -a -G video zignage
       ignore_errors: yes
-        
+    - name: Set permissions for video devices user11
+      become: yes
+      become_user: root
+      shell: |
+        sudo chown root:root /etc/camera_binding/camera_config.json
+      ignore_errors: yes
 
+    - name: Set permissions for video devices user22
+      become: yes
+      become_user: root
+      shell: |
+        sudo chmod 644 /etc/camera_binding/camera_config.json
+      ignore_errors: yes
     - name: Restart camera_binder service
       become: yes
       become_user: root
