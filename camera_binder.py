@@ -76,24 +76,19 @@ def load_process_config():
     except FileNotFoundError:
         logging.warning(f"Configuration file not found at {config_path}, using defaults")
         return {
-        {
             "livedooh-player": {
-            "expected_uuid_file": "/etc/camera_binding/livedooh_camera_uuid.txt",
-            "symlink_path": "/dev/camera_livedooh",
-            "allow_4k": true,
-            "only_4k": true
-        },
-        "vidireports": {
-        "expected_uuid_file": "/etc/camera_binding/vidireports_camera_uuid.txt",
-            "symlink_path": "/dev/camera_vidireports",
-            "allow_4k": false,
-            "only_4k": false
-    }
-}
+                "expected_uuid_file": "/etc/camera_binding/livedooh_camera_uuid.txt",
+                "symlink_path": "/dev/camera_livedooh",
+                "allow_4k": True,
+                "only_4k": True
+            },
+            "vidireports": {
+                "expected_uuid_file": "/etc/camera_binding/vidireports_camera_uuid.txt",
+                "symlink_path": "/dev/camera_vidireports",
+                "allow_4k": False,
+                "only_4k": False
+            }
         }
-    except Exception as e:
-        logging.error(f"Error loading configuration: {e}")
-        sys.exit(1)
     except Exception as e:
         logging.error(f"Error loading configuration: {e}")
         sys.exit(1)
@@ -430,21 +425,20 @@ def main():
     # Set baseline permissions for all cameras
     lock_all_cameras()
 
-# In the main function, modify this section:
     try:
-    # Process binding for each configured process
+        # Process binding for each configured process
         for process_name, config in PROCESS_CAMERA_MAPPING.items():
             logging.info(f"Processing camera binding for {process_name}")
             allow_4k = config.get('allow_4k', False)
-            only_4k = process_name == 'livedooh-player'  # Add this line
+            only_4k = config.get('only_4k', False)  # Get from config instead of hardcoding
 
-        # Filter cameras based on 4K permission
+            # Filter cameras based on 4K permission
             available_cameras = []
             for bus_num, device_num, description in camera_devices:
                 is_4k = is_4k_camera(bus_num, device_num)
-            # Modified condition to handle livedooh special case
+                # Modified condition to handle 4K requirements
                 if only_4k:
-                    if is_4k:  # Only allow 4K cameras for livedooh
+                    if is_4k:  # Only allow 4K cameras for processes that require it
                         available_cameras.append((bus_num, device_num, description))
                         logging.info(f"4K Camera on Bus {bus_num} Device {device_num} is available for {process_name}")
                 else:
