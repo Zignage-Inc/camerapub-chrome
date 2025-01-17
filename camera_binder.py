@@ -76,18 +76,18 @@ def load_process_config():
         return config
     except FileNotFoundError:
         logging.warning(f"Configuration file not found at {config_path}, using defaults")
-        return {
-            'livedooh-player': {
-                'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
-                'symlink_path': '/dev/camera_livedooh',
-                'allow_4k': True
-            },  # Added missing comma
-            'vidireports': {
-                'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
-                'symlink_path': '/dev/camera_vidireports',
-                'allow_4k': False
-            }
-        }
+    return {
+        'livedooh-player': {
+            'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
+            'symlink_path': '/dev/camera_livedooh',
+            'allow_4k': True
+        },  # Add comma here
+        'vidireports': {
+            'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
+            'symlink_path': '/dev/camera_vidireports',
+            'allow_4k': False
+    }
+}
     except Exception as e:
         logging.error(f"Error loading configuration: {e}")
         sys.exit(1)
@@ -461,11 +461,6 @@ def main():
                     available_cameras.append((bus_num, device_num, description))
                     logging.info(f"Camera on Bus {bus_num} Device {device_num} is available for {process_name} (4K: {is_4k})")
 
-            # Select appropriate camera for this process
-            if not available_cameras:
-                logging.error(f"No suitable camera found for {process_name}")
-                continue
-
             # Try to find a suitable camera
             selected_device_info = None
             for bus_num, device_num, description in available_cameras:
@@ -475,7 +470,7 @@ def main():
                     break
 
             if not selected_device_info:
-                logging.error(f"No suitable camera device found for {process_name}")
+                logging.error(f"No suitable camera found for {process_name}")
                 continue
 
             devnode, bus_num, device_num = selected_device_info
@@ -512,7 +507,6 @@ def main():
                 if os.path.exists(symlink_path) or os.path.islink(symlink_path):
                     os.remove(symlink_path)
                 os.symlink(devnode, symlink_path)
-                # Set symlink ownership
                 os.chown(symlink_path, get_uid(CAMERA_USER), get_gid(CAMERA_USER))
                 logging.info(f"Created symlink {symlink_path} -> {devnode}")
             except Exception as e:
