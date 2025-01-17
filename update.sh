@@ -115,13 +115,19 @@ fi
 
 sudo systemctl stop vidireports || true
 
+# Capture the list of PIDs
 pids=$(ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}')
 
-# Check if any processes were found
+# Check if any PIDs were found
 if [ -n "$pids" ]; then
     for pid in $pids; do
-        echo "Killing process with PID $pid"
-        kill -9 $pid
+        # Double-check that the PID is a number
+        if [ "$pid" -eq "$pid" ] 2>/dev/null; then
+            echo "Killing process with PID $pid"
+            kill -9 $pid
+        else
+            echo "Skipping invalid PID: $pid"
+        fi
     done
 else
     echo "No processes found with 'vidi' or 'vidireports' in the name."
