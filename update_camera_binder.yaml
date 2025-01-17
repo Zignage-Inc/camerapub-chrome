@@ -106,12 +106,6 @@
         file_type: any
       register: video_devices
 
-    - name: Set permissions for video devices
-      file:
-        path: "{{ item.path }}"
-        mode: '0666'
-      with_items: "{{ video_devices.files }}"
-      when: video_devices.matched > 0
     - name: Reload systemd daemon
       systemd:
         daemon_reload: yes
