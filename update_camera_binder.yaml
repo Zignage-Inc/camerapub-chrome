@@ -1,0 +1,114 @@
+---
+- name: Configure Camera Binder update
+  hosts: zplayers
+  become: yes
+  serial: 100%
+  tasks:
+    - name: Install git package
+      package:
+        name: git
+        state: present
+   # - name: Remove directory if it exists
+  #file:
+  #  path: /path/to/directory
+  #  state: absent
+
+   # - name: Clone camera_binder_aa repository
+   #   git:
+   #     repo: https://github.com/chrismcfee/camerapub
+   #     dest: /home/zignage/camerapub
+   #     clone: yes
+   #     update: yes
+
+    - name: Create camera_binder directory if it doesn't exist
+      file:
+        path: /home/zignage/camera_binder
+        state: directory
+        mode: '0755'
+    - name: Delete livedooh_camera_uuid.txt
+      file:
+        path: /etc/camera_binding/livedooh_camera_uuid.txt
+        state: absent
+   # - name: delete old vidireports
+   #   file:
+   #     path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+   #     state: absent
+
+  #  - name: Copy files from cloned repo to camera_binder directory
+  #    copy:
+  #      src: "/home/zignage/camera_binder_aa/{{ item }}"
+  #      dest: "/home/zignage/camera_binder/{{ item }}"
+  #      remote_src: yes
+  #      force: yes
+  #      mode: '0644'
+  #    with_items:
+  #      - camera_binder.py
+  #      - camera-setup.sh
+  #      - camera_binder.service
+
+
+    - name: Copy camera_binder.service
+      copy:
+        src: /home/zignage/camerapub/camera_binder.service
+        dest: /etc/systemd/system/camera_binder.service
+        remote_src: yes
+        force: yes
+        mode: '0644'
+        - name: Copy camera_binder.py
+      copy:
+        src: /home/zignage/camerapub/camera_binder.service
+        dest: /etc/systemd/system/camera_binder.service
+        remote_src: yes
+        force: yes
+        mode: '0644'
+          - name: Copy camera_binder.service
+      copy:
+        src: /home/zignage/camerapub/camera_binder.service
+        dest: /etc/systemd/system/camera_binder.service
+        remote_src: yes
+        force: yes
+        mode: '0644'
+
+      
+
+        
+    - name: Find video devices
+      find:
+        paths: /dev
+        patterns: 'video*'
+        file_type: any
+      register: video_devices
+
+    - name: Set permissions for video devices
+      file:
+        path: "{{ item.path }}"
+        mode: '0666'
+      with_items: "{{ video_devices.files }}"
+      when: video_devices.matched > 0
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart camera_binder service
+      become: yes
+      become_user: root
+      shell: |
+        sudo systemctl restart camera_binder
+      ignore_errors: yes
+
+    - name: Get service status if restart failed
+      shell: "sleep 11 && systemctl status camera_binder.service && journalctl -xeu camera_binder.service"
+      when: restart_result is failed
+      register: service_status
+      ignore_errors: yes
+
+        #    - name: Display service status
+        #debug:
+        # var: service_status.stdout_lines
+        #when: restart_result is failed
+    - name: Copy camera-setup.sh
+      copy:
+        src: /home/zignage/camerapub/camera-setup.sh
+        dest: /usr/local/bin/camera-setup.sh
+        mode: '0755'
+
