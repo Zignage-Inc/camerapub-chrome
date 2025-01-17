@@ -76,18 +76,21 @@ def load_process_config():
         return config
     except FileNotFoundError:
         logging.warning(f"Configuration file not found at {config_path}, using defaults")
-    return {
-        'livedooh-player': {
-            'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
-            'symlink_path': '/dev/camera_livedooh',
-            'allow_4k': True
-        },  # Add comma here
-        'vidireports': {
-            'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
-            'symlink_path': '/dev/camera_vidireports',
-            'allow_4k': False
-    }
-}
+        return {
+            'livedooh-player': {
+                'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
+                'symlink_path': '/dev/camera_livedooh',
+                'allow_4k': True
+            },
+            'vidireports': {
+                'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
+                'symlink_path': '/dev/camera_vidireports',
+                'allow_4k': False
+            }
+        }
+    except Exception as e:
+        logging.error(f"Error loading configuration: {e}")
+        sys.exit(1)
     except Exception as e:
         logging.error(f"Error loading configuration: {e}")
         sys.exit(1)
