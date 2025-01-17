@@ -113,4 +113,15 @@ else
     sleep 2s
 fi
 
+sudo systemctl stop vidireports || true
 
+ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}' | xargs kill -9
+
+sudo systemctl stop vidireports || true
+
+cd /home/zignage/camerapub
+sudo systemctl stop vidireports || true
+ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
+sudo systemctl stop vidireports || true
+ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}' | xargs kill -9
+sudo systemctl start vidireports || true
