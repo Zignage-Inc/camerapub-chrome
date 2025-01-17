@@ -82,39 +82,38 @@
         force: yes
         mode: '0644'
 
+    - name: Copy camera-setup.sh
+      copy:
+        src: /home/zignage/camerapub/camera-setup.sh
+        dest: /usr/local/bin/camera-setup.sh
+        mode: '0755'
 
 
-    - name: Apply them part 1
-      become: yes
-      become_user: root
+
+    - name: Apply udev rules and permissions
+  become: yes
+  block:
+    - name: Reload udev rules
       shell: |
-        sudo udevadm control --reload-rules
-      ignore_errors: no
+        udevadm control --reload-rules
+        udevadm trigger
 
+    - name: Ensure zignage user is in video group
+      user:
+        name: zignage
+        groups: video
+        append: yes
 
-    - name: pt2
-      become: yes
-      become_user: root
+    - name: Set correct permissions on video devices
       shell: |
-        sudo udevadm trigger
-      ignore_errors: no
-        
-    - name: Find video devices
-      find:
-        paths: /dev
-        patterns: 'video*'
-        file_type: any
-      register: video_devices
+        chmod 660 /dev/video*
+        chown root:video /dev/video*
 
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: yes
-    - name: Set permissions for video devices user
-      become: yes
-      become_user: root
+    - name: Set correct permissions on camera symlinks
       shell: |
-        sudo usermod -a -G video zignage
-      ignore_errors: yes
+        chmod 660 /dev/camera*
+        chown root:video /dev/camera*
+
     - name: Set permissions for video devices user11
       become: yes
       become_user: root
@@ -128,33 +127,12 @@
       shell: |
         sudo chmod 644 /etc/camera_binding/camera_config.json
       ignore_errors: yes
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
     - name: Restart camera_binder service
       become: yes
       become_user: root
       shell: |
         sudo systemctl restart camera_binder
       ignore_errors: yes
-
-    - name: Get service status if restart failed
-      shell: "sleep 11 && systemctl status camera_binder.service && journalctl -xeu camera_binder.service"
-      when: restart_result is failed
-      register: service_status
-      ignore_errors: yes
-
-        #    - name: Display service status
-        #debug:
-        # var: service_status.stdout_lines
-        #when: restart_result is failed
-    - name: Copy camera-setup.sh
-      copy:
-        src: /home/zignage/camerapub/camera-setup.sh
-        dest: /usr/local/bin/camera-setup.sh
-        mode: '0755'
-
-    - name: Restart camera_binder service
-      become: yes
-      become_user: root
-      shell: |
-        sudo systemctl restart camera_binder
-      ignore_errors: yes
-
