@@ -447,28 +447,28 @@ def main():
             expected_uuid_file = config['expected_uuid_file']
             symlink_path = config['symlink_path']
 
-        # Ensure directory exists for UUID file and symlink
-        ensure_directory_exists(expected_uuid_file)
-        ensure_directory_exists(symlink_path)
+            # Ensure directory exists for UUID file and symlink
+            ensure_directory_exists(expected_uuid_file)
+            ensure_directory_exists(symlink_path)
 
-        # Generate or load UUID
-        uuid, dev_path = generate_device_uuid(bus_num, device_num)
-        if not uuid:
-            logging.error(f"Failed to generate UUID for {process_name}")
-            continue
-
-        # Save UUID if it doesn't exist
-        if not os.path.exists(expected_uuid_file):
-            try:
-                with open(expected_uuid_file, 'w') as f:
-                    f.write(uuid + '\n')
-                logging.info(f"Saved UUID for {process_name}: {uuid}")
-            except Exception as e:
-                logging.error(f"Failed to save UUID: {e}")
+            # Generate or load UUID
+            uuid, dev_path = generate_device_uuid(bus_num, device_num)
+            if not uuid:
+                logging.error(f"Failed to generate UUID for {process_name}")
                 continue
 
-        # Create symlink with proper permissions
-        try:
+            # Save UUID if it doesn't exist
+            if not os.path.exists(expected_uuid_file):
+                try:
+                    with open(expected_uuid_file, 'w') as f:
+                        f.write(uuid + '\n')
+                    logging.info(f"Saved UUID for {process_name}: {uuid}")
+                except Exception as e:
+                    logging.error(f"Failed to save UUID: {e}")
+                    continue
+
+            # Create symlink with proper permissions
+            try:
                 if os.path.exists(symlink_path) or os.path.islink(symlink_path):
                     os.remove(symlink_path)
                 os.symlink(devnode, symlink_path)
