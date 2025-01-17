@@ -107,6 +107,13 @@
     - name: Reload systemd daemon
       systemd:
         daemon_reload: yes
+    - name: Set permissions for video devices user
+      become: yes
+      become_user: root
+      shell: |
+        sudo usermod -a -G video zignage
+      ignore_errors: yes
+        
 
     - name: Restart camera_binder service
       become: yes
