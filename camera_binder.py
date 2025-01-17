@@ -81,11 +81,11 @@ def load_process_config():
                 'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
                 'symlink_path': '/dev/camera_livedooh',
                 'allow_4k': True
-            }
+            },  # Added missing comma
             'vidireports': {
-               'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
-               'symlink_path': '/dev/camera_vidireports',
-               'allow_4k': False
+                'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
+                'symlink_path': '/dev/camera_vidireports',
+                'allow_4k': False
             }
         }
     except Exception as e:
@@ -162,39 +162,34 @@ def get_camera_resolution(devnode):
         logging.error(f"Unexpected error getting resolution for {devnode}: {e}")
         return []
 
-def find_highest_resolution_device(camera_devices):
+def find_highest_resolution_device(camera_devices, process_name=None):
     """
-    Find the best camera device, prioritizing 4K cameras
+    Find the best camera device, considering process requirements
     """
     best_camera = None
-    found_4k = False
 
-    # First, look for 4K cameras
+    # Get process configuration
+    process_config = PROCESS_CAMERA_MAPPING.get(process_name, {})
+    allow_4k = process_config.get('allow_4k', True)
+
+    logging.info(f"Finding camera for process {process_name}, allow_4k: {allow_4k}")
+
+    # First, look for appropriate cameras
     for bus_num, device_num, description in camera_devices:
         logging.info(f"Checking camera: Bus {bus_num} Device {device_num}")
-        if is_4k_camera(bus_num, device_num):
-            devnode = find_device_node(bus_num, device_num)
-            if devnode:
-                logging.info(f"Found 4K camera at {devnode} (Bus {bus_num}, Device {device_num})")
-                best_camera = (devnode, bus_num, device_num)
-                found_4k = True
-                break
+        is_4k = is_4k_camera(bus_num, device_num)
 
-    # If no 4K camera found, fall back to other cameras
-    if not found_4k and camera_devices:
-        for bus_num, device_num, description in camera_devices:
-            devnode = find_device_node(bus_num, device_num)
-            if devnode:
-                logging.info(f"Falling back to non-4K camera at {devnode} (Bus {bus_num}, Device {device_num})")
-                best_camera = (devnode, bus_num, device_num)
-                break
+        # Skip 4K cameras if not allowed
+        if not allow_4k and is_4k:
+            logging.info(f"Skipping 4K camera for process {process_name}")
+            continue
 
-    if best_camera:
-        devnode, bus_num, device_num = best_camera
-        logging.info(f"Selected camera device: {devnode} (Bus {bus_num}, Device {device_num})")
-        return best_camera
+        devnode = find_device_node(bus_num, device_num)
+        if devnode:
+            logging.info(f"Found suitable camera at {devnode} (Bus {bus_num}, Device {device_num})")
+            return (devnode, bus_num, device_num)
 
-    logging.error("No suitable camera found")
+    logging.error(f"No suitable camera found for process {process_name}")
     return None
 
 def pick_highest_resolution(camera_resolutions):
@@ -436,7 +431,6 @@ def setup_camera_permissions(devnode, process_name):
 
 
 
-# Modify the main function to include root check and better error handling:
 def main():
     check_root()
     debug_camera_info()
@@ -453,6 +447,21 @@ def main():
 
     # Set baseline permissions for all cameras
     lock_all_cameras()
+
+    try:
+        # Process binding for each configured process
+        for process_name, config in PROCESS_CAMERA_MAPPING.items():
+            # Select appropriate camera for this process
+            selected_device_info = find_highest_resolution_device(camera_devices, process_name)
+
+            if not selected_device_info:
+                logging.error(f"No suitable camera found for {process_name}")
+                continue
+
+            devnode, bus_num, device_num = selected_device_info
+            logging.info(f"Selected camera device for {process_name}: {devnode}")
+
+            # Rest of your existing code...
 
     # Select the best camera (preferring 4K)
     selected_device_info = find_highest_resolution_device(camera_devices)
