@@ -1,7 +1,12 @@
 # /etc/udev/rules.d/99-camera-permissions.rules
 #KERNEL=="video*", ATTRS{idVendor}=="[vendor_id]", ATTRS{idProduct}=="[product_id]", SYMLINK+="camera_locked", TAG+="camera_access"
 # Lock down all video devices by default
-ACTION=="add", SUBSYSTEM=="video4linux", GROUP="video", MODE="0660"
+#ACTION=="add", SUBSYSTEM=="video4linux", GROUP="video", MODE="0660"
+ACTION=="add", SUBSYSTEM=="video4linux", MODE="0600", OWNER="root", GROUP="root"
+
+# Allow access only through our symlinks
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="[your_4k_camera_vendor_id]", MODE="0600", OWNER="root", GROUP="root"
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="[your_1080p_camera_vendor_id]", MODE="0600", OWNER="root", GROUP="root"
 
 # Optional: You can add specific exceptions if needed
 # For example, to allow specific cameras based on vendor/product ID:
