@@ -1,0 +1,12 @@
+# /etc/systemd/system/vidireports.service
+[Unit]
+Description=VidiReports Service
+After=network.target
+[Service]
+Type=simple
+ExecStart=/home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
+Restart=always
+User=zignage
+Group=video
+[Install]
+WantedBy=multi-user.target
