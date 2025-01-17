@@ -1,10 +1,6 @@
-# /etc/udev/rules.d/99-camera-permissions.rules
+# Set default permissions for all video devices
+ACTION=="add", SUBSYSTEM=="video4linux", GROUP="video", MODE="0660"
 
-# First, set default restrictive permissions for all video devices
-ACTION=="add", SUBSYSTEM=="video4linux", MODE="0600", OWNER="root", GROUP="root"
-
-# Rules for 4K camera (update with your actual vendor and product IDs)
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0415", SYMLINK+="camera_4k", MODE="0600", OWNER="root", GROUP="root"
-
-# Rules for 1080p camera (update with your actual vendor and product IDs)
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0577", SYMLINK+="camera_1080p", MODE="0600", OWNER="root", GROUP="root"
+# Create symlinks and set permissions for specific cameras
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0415", SYMLINK+="camera_4k", GROUP="video", MODE="0660", TAG+="camera_access"
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0577", SYMLINK+="camera_1080p", GROUP="video", MODE="0660", TAG+="camera_access"
