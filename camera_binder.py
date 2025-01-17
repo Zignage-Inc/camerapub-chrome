@@ -430,7 +430,6 @@ def setup_camera_permissions(devnode, process_name):
         logging.error(f"Error setting camera permissions: {e}")
 
 
-
 def main():
     check_root()
     debug_camera_info()
@@ -451,34 +450,40 @@ def main():
     try:
         # Process binding for each configured process
         for process_name, config in PROCESS_CAMERA_MAPPING.items():
+            logging.info(f"Processing camera binding for {process_name}")
+            allow_4k = config.get('allow_4k', False)
+
+            # Filter cameras based on 4K permission
+            available_cameras = []
+            for bus_num, device_num, description in camera_devices:
+                is_4k = is_4k_camera(bus_num, device_num)
+                if (not allow_4k and not is_4k) or (allow_4k):
+                    available_cameras.append((bus_num, device_num, description))
+                    logging.info(f"Camera on Bus {bus_num} Device {device_num} is available for {process_name} (4K: {is_4k})")
+
             # Select appropriate camera for this process
-            selected_device_info = find_highest_resolution_device(camera_devices, process_name)
+            if not available_cameras:
+                logging.error(f"No suitable camera found for {process_name}")
+                continue
+
+            # Try to find a suitable camera
+            selected_device_info = None
+            for bus_num, device_num, description in available_cameras:
+                devnode = find_device_node(bus_num, device_num)
+                if devnode:
+                    selected_device_info = (devnode, bus_num, device_num)
+                    break
 
             if not selected_device_info:
-                logging.error(f"No suitable camera found for {process_name}")
+                logging.error(f"No suitable camera device found for {process_name}")
                 continue
 
             devnode, bus_num, device_num = selected_device_info
             logging.info(f"Selected camera device for {process_name}: {devnode}")
 
-            # Rest of your existing code...
+            # Setup proper group permissions
+            setup_camera_groups(devnode)
 
-    # Select the best camera (preferring 4K)
-    selected_device_info = find_highest_resolution_device(camera_devices)
-
-    if not selected_device_info:
-        logging.error("No suitable camera found")
-        sys.exit(1)
-
-    devnode, bus_num, device_num = selected_device_info
-    logging.info(f"Selected camera device: {devnode}")
-
-    try:
-        # Setup proper group permissions
-        setup_camera_groups(devnode)
-
-        # Process binding for each configured process
-        for process_name, config in PROCESS_CAMERA_MAPPING.items():
             expected_uuid_file = config['expected_uuid_file']
             symlink_path = config['symlink_path']
 
