@@ -81,6 +81,8 @@ fi
 sudo rm -rf /home/zignage/.vidireports
 sudo rm -rf /etc/vidireports
 sudo rm -rf /opt/vidireports
+sudo rm -rf /var/cache/downloads
+sudo rm -rf /var/cache/vidireports.lock
 echo "FINISHED CLEANUP TASKS"
 
 
@@ -103,4 +105,12 @@ else
     sleep 2s
 fi
 
-cat /etc/vidireports/instance0.cfg | grep BoxID
+
+if [ -f "/etc/vidireports/instance0.cfg" ]; then
+    cat /etc/vidireports/instance0.cfg | grep BoxID
+else
+    echo "VidiReports conf not found in etc directory. Checking alternate location:"
+    sleep 2s
+fi
+
+sudo systemctl stop vidireports && sudo killall vidireports-bin || true && echo "start service manually unless the next playbook is run"
