@@ -426,19 +426,27 @@ def main():
     # Set baseline permissions for all cameras
     lock_all_cameras()
 
+# In the main function, modify this section:
     try:
-        # Process binding for each configured process
+    # Process binding for each configured process
         for process_name, config in PROCESS_CAMERA_MAPPING.items():
             logging.info(f"Processing camera binding for {process_name}")
             allow_4k = config.get('allow_4k', False)
+            only_4k = process_name == 'livedooh-player'  # Add this line
 
-            # Filter cameras based on 4K permission
+        # Filter cameras based on 4K permission
             available_cameras = []
             for bus_num, device_num, description in camera_devices:
                 is_4k = is_4k_camera(bus_num, device_num)
-                if (not allow_4k and not is_4k) or (allow_4k):
-                    available_cameras.append((bus_num, device_num, description))
-                    logging.info(f"Camera on Bus {bus_num} Device {device_num} is available for {process_name} (4K: {is_4k})")
+            # Modified condition to handle livedooh special case
+                if only_4k:
+                    if is_4k:  # Only allow 4K cameras for livedooh
+                        available_cameras.append((bus_num, device_num, description))
+                        logging.info(f"4K Camera on Bus {bus_num} Device {device_num} is available for {process_name}")
+                else:
+                    if not is_4k:  # Only allow non-4K cameras for other processes
+                        available_cameras.append((bus_num, device_num, description))
+                        logging.info(f"Non-4K Camera on Bus {bus_num} Device {device_num} is available for {process_name}")
 
             # Try to find a suitable camera
             selected_device_info = None
