@@ -239,29 +239,25 @@ def get_usb_camera_devices():
 
     return camera_devices
 def generate_device_uuid(bus_num, device_num):
-    # Use udevadm to get device properties
     dev_path = f"/dev/bus/usb/{bus_num}/{device_num}"
     try:
-        udevadm_output = subprocess.check_output(['udevadm', 'info', '--query=property', '--name', dev_path], text=True)
-        properties = {}
-        for line in udevadm_output.strip().split('\n'):
-            if '=' in line:
-                key, value = line.strip().split('=', 1)
-                properties[key] = value
-        # Use ID_SERIAL_SHORT or ID_SERIAL as the UUID source
-        serial = properties.get('ID_SERIAL_SHORT') or properties.get('ID_SERIAL')
-        if serial:
-            uuid = hashlib.md5(serial.encode()).hexdigest()
-            logging.debug(f"Generated UUID '{uuid}' for device with serial {serial}")
-            return uuid, dev_path
-        else:
-            # Fallback to device path
-            dev_path_info = subprocess.check_output(['udevadm', 'info', '--query=path', '--name', dev_path], text=True).strip()
-            uuid = hashlib.md5(dev_path_info.encode()).hexdigest()
-            logging.debug(f"Generated UUID '{uuid}' for device path {dev_path_info}")
-            return uuid, dev_path_info
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error executing udevadm for device {dev_path}: {e}")
+        # Get detailed device info
+        device_info = subprocess.check_output(
+            ['udevadm', 'info', '-a', '-n', dev_path],
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # Include device-specific information in UUID generation
+        uuid_input = f"{dev_path}:{device_info}"
+        uuid = hashlib.md5(uuid_input.encode()).hexdigest()
+
+        logging.info(f"Generated UUID '{uuid}' for device {dev_path}")
+        logging.debug(f"UUID input data: {uuid_input[:100]}...")  # Log first 100 chars
+
+        return uuid, dev_path
+    except Exception as e:
+        logging.error(f"Error generating UUID: {e}")
         return None, None
 
 def find_device_node(bus_num, device_num):
