@@ -113,4 +113,4 @@ else
     sleep 2s
 fi
 
-sudo systemctl stop vidireports && sudo killall vidireports-bin || true && echo "start service manually unless the next playbook is run"
+
