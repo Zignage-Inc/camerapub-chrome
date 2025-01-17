@@ -115,7 +115,7 @@ fi
 
 sudo systemctl stop vidireports || true
 
-ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}' | xargs kill -9
+ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}' | xargs -I {} kill -9 {}
 
 sudo systemctl stop vidireports || true
 
