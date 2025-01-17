@@ -77,6 +77,13 @@
             udevadm control --reload-rules
             udevadm trigger
 
+        - name: Reset perms
+          shell: |
+            sudo chown -R zignage:zignage /etc/camera_binding
+            sudo chmod 755 /etc/camera_binding
+            sudo chmod 644 /etc/camera_binding/*.txt
+            sudo chmod 644 /etc/camera_binding/camera_config.json
+
         - name: Wait for udev
           pause:
             seconds: 2
