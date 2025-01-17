@@ -15,7 +15,6 @@ LOGFILE = '/var/log/camera_binding.log'
 logging.basicConfig(filename=LOGFILE, level=logging.INFO,
                     format='%(asctime)s %(levelname)s: %(message)s')
 
-EXPECTED_UUID_FILE = '/etc/camera_binding/expected_camera_uuid.txt'
 CAMERA_USER = 'zignage'  # Replace with the actual user or service account
 SYMLINK_PATH = '/dev/camera_locked'
 
@@ -265,29 +264,6 @@ def generate_device_uuid(bus_num, device_num):
     except subprocess.CalledProcessError as e:
         logging.error(f"Error executing udevadm for device {dev_path}: {e}")
         return None, None
-
-def load_expected_uuid():
-    try:
-        with open(EXPECTED_UUID_FILE, 'r') as f:
-            expected_uuid = f.readline().strip()
-        logging.info(f"Loaded expected UUID: {expected_uuid}")
-        return expected_uuid
-    except FileNotFoundError:
-        logging.warning("Expected UUID file not found.")
-        return None
-    except Exception as e:
-        logging.error(f"Error loading expected UUID: {e}")
-        return None
-
-def save_expected_uuid(uuid):
-    try:
-        ensure_directory_exists(EXPECTED_UUID_FILE)
-        with open(EXPECTED_UUID_FILE, 'w') as f:
-            f.write(uuid + '\n')
-        logging.info(f"Saved expected UUID: {uuid}")
-    except Exception as e:
-        logging.error(f"Error saving expected UUID: {e}")
-        sys.exit(1)
 
 def find_device_node(bus_num, device_num):
     """Find the video device node for a USB device"""
