@@ -371,22 +371,59 @@ def bind_camera_to_process(process_name, devnode):
             logging.error(f"Error creating process-specific symlink {symlink_path}: {e}")
 # Modify your main() function to handle multiple processes
 
+def lock_all_cameras():
+    """Make all video devices restrictive by default"""
+    try:
+        video_devices = glob.glob('/dev/video*')
+        for device in video_devices:
+            os.chmod(device, 0o000)  # Remove all permissions
+            logging.info(f"Locked permissions for {device}")
+    except Exception as e:
+        logging.error(f"Error locking cameras: {e}")
+
+def setup_camera_permissions(devnode, process_name):
+    """Set up specific permissions for a camera device"""
+    try:
+        # Make the device accessible only to the specific user/group
+        os.chmod(devnode, 0o600)
+        os.chown(devnode, get_uid(CAMERA_USER), get_gid(CAMERA_USER))
+        logging.info(f"Set permissions for {devnode} for process {process_name}")
+    except Exception as e:
+        logging.error(f"Error setting camera permissions: {e}")
+
+# Modify your main() function:
+def main():
+    check_root()
+
+    # First, lock all cameras
+    lock_all_cameras()
+
+    # Rest of your existing code...
+
+    # When binding a camera:
+    if selected_device_info:
+        devnode, bus_num, device_num = selected_device_info
+        setup_camera_permissions(devnode, process_name)
+
 
 
 # Modify the main function to include root check and better error handling:
 def main():
     check_root()
-    debug_camera_info()  # Add this line for debugging
+    debug_camera_info()
 
     camera_devices = get_usb_camera_devices()
     if not camera_devices:
         logging.error("No camera devices found.")
         sys.exit(1)
-    # ... rest of your main function
-# Log all found cameras
+
+    # Log all found cameras
     logging.info("Found cameras:")
     for bus_num, device_num, description in camera_devices:
         logging.info(f"  {description} (Bus {bus_num}, Device {device_num})")
+
+    # First, lock all cameras
+    lock_all_cameras()
 
     # Select the best camera (preferring 4K)
     selected_device_info = find_highest_resolution_device(camera_devices)
@@ -395,8 +432,12 @@ def main():
         logging.error("No suitable camera found")
         sys.exit(1)
 
+    # Add these lines here
     devnode, bus_num, device_num = selected_device_info
     logging.info(f"Selected camera device: {devnode}")
+
+    # Set initial restrictive permissions
+    setup_camera_permissions(devnode, CAMERA_USER)
 
     # Process binding for each configured process
     for process_name, config in PROCESS_CAMERA_MAPPING.items():
