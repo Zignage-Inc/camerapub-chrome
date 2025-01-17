@@ -107,21 +107,37 @@
 
     - name: Restart services and verify
       block:
-        - name: Reload systemd
+        - name: Stop services
           systemd:
+            name: "{{ item }}"
+            state: stopped
+          with_items:
+            - vidireports
+            - camera_binder
+
+        - name: Wait for services to stop
+          pause:
+            seconds: 2
+
+        - name: Reload udev rules
+          shell: |
+            udevadm control --reload-rules
+            udevadm trigger
+
+        - name: Wait for udev
+          pause:
+            seconds: 2
+
+        - name: Start services
+          systemd:
+            name: "{{ item }}"
+            state: started
             daemon_reload: yes
+          with_items:
+            - camera_binder
+            - vidireports
 
-        - name: Restart camera_binder
-          systemd:
-            name: camera_binder
-            state: restarted
-
-        - name: Restart vidireports
-          systemd:
-            name: vidireports
-            state: restarted
-
-        - name: Wait for services
+        - name: Wait for services to start
           pause:
             seconds: 5
 
@@ -140,3 +156,52 @@
         - name: Display final verification
           debug:
             var: final_check.stdout_lines
+    - name: Diagnostic checks
+      block:
+        - name: Check vidireports process owner
+          shell: ps aux | grep vidireports
+          register: process_check
+
+        - name: Display process info
+          debug:
+            var: process_check.stdout_lines
+
+        - name: Check user groups
+          shell: |
+            echo "zignage groups:"
+            groups zignage
+          register: group_check
+
+        - name: Display group info
+          debug:
+            var: group_check.stdout_lines
+
+        - name: Check device permissions before restart
+          shell: |
+            ls -l /dev/video*
+            ls -l /dev/camera*
+          register: perm_check
+
+        - name: Display permission info
+          debug:
+            var: perm_check.stdout_lines
+    - name: Check vidireports configuration
+      block:
+        - name: Ensure vidireports config directory exists
+          file:
+            path: /home/zignage/.vidireports/config
+            state: directory
+            owner: zignage
+            group: zignage
+            mode: '0755'
+
+        - name: Create vidireports config
+          copy:
+            content: |
+              [Camera]
+              device=/dev/camera_vidireports
+              format=MJPG
+            dest: /home/zignage/.vidireports/config/instance0.cfg
+            owner: zignage
+            group: zignage
+            mode: '0644'
