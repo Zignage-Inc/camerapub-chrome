@@ -361,12 +361,10 @@ def get_gid(username):
 # Add this near the top of your file, after the existing constants
 # In your camera_binder.py, modify the PROCESS_CAMERA_MAPPING
 
-PROCESS_CAMERA_MAPPING = {
-    'livedooh-player': {
-        'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
-        'symlink_path': '/dev/camera_livedooh'
-    }
-}
+# Add these to your existing camera_binder.py
+
+# Load process configuration from JSON file
+PROCESS_CAMERA_MAPPING = load_process_config()
 def debug_camera_info():
     """Print debug information about available cameras"""
     try:
