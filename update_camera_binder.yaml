@@ -95,28 +95,6 @@
             chmod 644 /etc/camera_binding/camera_config.json
           ignore_errors: yes
 
-    # 5. Configure vidireports
-    - name: Configure vidireports
-      block:
-        - name: Ensure vidireports config directory exists
-          file:
-            path: /home/zignage/.vidireports/config
-            state: directory
-            owner: zignage
-            group: zignage
-            mode: '0755'
-
-        - name: Create vidireports config
-          copy:
-            content: |
-              [Camera]
-              device=/dev/camera_vidireports
-              format=MJPG
-            dest: /home/zignage/.vidireports/config/instance0.cfg
-            owner: zignage
-            group: zignage
-            mode: '0644'
-
     # 6. Apply udev rules and create symlinks
     - name: Apply udev rules and create symlinks
       block:
