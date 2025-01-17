@@ -137,11 +137,49 @@ else
 fi
 
 sudo systemctl stop vidireports || true
-kill_vidi_processes
+kill_vidi_processes || true
 sudo systemctl stop vidireports || true
 cd /home/zignage/camerapub
 sudo systemctl stop vidireports || true
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 sudo systemctl stop vidireports || true
-kill_vidi_processes
+kill_vidi_processes || true
+# Create a temporary file to store the output of v4l2-ctl --list-devices
+temp_file=$(mktemp)
+v4l2-ctl --list-devices > "$temp_file"
+# Define the configuration file path
+config_file="/home/zignage/.vidireports/config/instance0.cfg"
+
+# Use a counter to keep track of the camera instance (for multiple cameras)
+camera_index=0
+
+# Loop through each camera block in the v4l2-ctl output
+while read -r camera_name device_info; do
+    # Extract the string inside the parentheses using regex
+    if [[ $device_info =~ \(([^)]+)\) ]]; then
+        usb_id="${BASH_REMATCH[1]}"
+
+        # Construct the new camera line
+        new_camera_line="camera = usb://$usb_id@640x480/MJPG"
+
+        # Update the configuration file (only the "camera =" line)
+        # Create a backup of the original config file
+        cp "$config_file" "$config_file.bak"
+
+        # Use sed to replace the "camera =" line with the new value
+        sed -i "s|^camera = .*|${new_camera_line}|" "$config_file"
+
+        echo "Updated $config_file with camera info: $new_camera_line"
+    else
+        echo "No USB ID found for camera: $camera_name"
+    fi
+
+    # Increment the camera index (if you have multiple cameras)
+    ((camera_index++))
+
+# Use awk to extract camera names and device info in pairs (assuming the format is consistent)
+done < <(awk '/\)/{getline device; print $0, device}' "$temp_file")
+
+# Clean up the temporary file
+rm "$temp_file"
 sudo systemctl start vidireports || true
