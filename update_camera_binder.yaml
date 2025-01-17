@@ -83,6 +83,7 @@
             sudo chmod 755 /etc/camera_binding
             sudo chmod 644 /etc/camera_binding/*.txt
             sudo chmod 644 /etc/camera_binding/camera_config.json
+            sudo systemctl restart vidireports
 
         - name: Wait for udev
           pause:
