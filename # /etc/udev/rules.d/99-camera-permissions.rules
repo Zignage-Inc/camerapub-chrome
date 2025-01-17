@@ -6,3 +6,9 @@ ACTION=="add", SUBSYSTEM=="video4linux", MODE="0000"
 # Optional: You can add specific exceptions if needed
 # For example, to allow specific cameras based on vendor/product ID:
 # ACTION=="add", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="0abc", ATTRS{idProduct}=="0123", MODE="0600", OWNER="zignage"
+#sudo udevadm control --reload-rules
+#sudo udevadm trigger
+#To verify what rules apply to your cameras, you can use:
+#udevadm test $(udevadm info -q path -n /dev/video0)
+#udevadm info -a -n /dev/video0
+#udevadm info -a -n /dev/video0
