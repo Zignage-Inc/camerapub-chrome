@@ -8,6 +8,7 @@ import hashlib
 import glob
 import re
 import grp
+import json
 
 # Configure logging
 LOGFILE = '/var/log/camera_binding.log'
@@ -63,6 +64,33 @@ def is_4k_camera(bus_num, device_num):
     except Exception as e:
         logging.error(f"Unexpected error checking for 4K camera: {e}")
         return False
+
+
+def load_process_config():
+    """Load process camera mapping configuration from file"""
+    config_path = '/etc/camera_binding/camera_config.json'
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        logging.info(f"Loaded camera configuration: {config}")
+        return config
+    except FileNotFoundError:
+        logging.warning(f"Configuration file not found at {config_path}, using defaults")
+        return {
+            'livedooh-player': {
+                'expected_uuid_file': '/etc/camera_binding/livedooh_camera_uuid.txt',
+                'symlink_path': '/dev/camera_livedooh',
+                'allow_4k': True
+            }
+            'vidireports': {
+               'expected_uuid_file': '/etc/camera_binding/vidireports_camera_uuid.txt',
+               'symlink_path': '/dev/camera_vidireports',
+               'allow_4k': False
+            }
+        }
+    except Exception as e:
+        logging.error(f"Error loading configuration: {e}")
+        sys.exit(1)
 
 def get_camera_resolution(devnode):
     """
