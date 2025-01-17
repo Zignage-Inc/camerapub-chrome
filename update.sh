@@ -139,5 +139,17 @@ cd /home/zignage/camerapub
 sudo systemctl stop vidireports || true
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 sudo systemctl stop vidireports || true
-ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}' | xargs kill -9
+if [ -n "$pids" ]; then
+    for pid in $pids; do
+        # Double-check that the PID is a number
+        if [ "$pid" -eq "$pid" ] 2>/dev/null; then
+            echo "Killing process with PID $pid"
+            kill -9 $pid
+        else
+            echo "Skipping invalid PID: $pid"
+        fi
+    done
+else
+    echo "No processes found with 'vidi' or 'vidireports' in the name."
+fi
 sudo systemctl start vidireports || true
