@@ -4,7 +4,7 @@
 ACTION=="add", SUBSYSTEM=="video4linux", MODE="0600", OWNER="root", GROUP="root"
 
 # Rules for 4K camera (update with your actual vendor and product IDs)
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="082d", SYMLINK+="camera_4k", MODE="0600", OWNER="root", GROUP="root"
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0415", SYMLINK+="camera_4k", MODE="0600", OWNER="root", GROUP="root"
 
 # Rules for 1080p camera (update with your actual vendor and product IDs)
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", SYMLINK+="camera_1080p", MODE="0600", OWNER="root", GROUP="root"
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0577", SYMLINK+="camera_1080p", MODE="0600", OWNER="root", GROUP="root"
