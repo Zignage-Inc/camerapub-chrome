@@ -38,6 +38,12 @@
             mode: '0644'
             force: yes
 
+        - name: Copy camera_binder.py
+          copy:
+            src: /home/zignage/camerapub/camera_binder.py
+            dest: /home/zignage/camera_binder/camera_binder.py
+            force: yes
+
         - name: Copy camera_config.json
           copy:
             src: /home/zignage/camerapub/camera_config.json
