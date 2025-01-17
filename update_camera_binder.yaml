@@ -8,49 +8,22 @@
       package:
         name: git
         state: present
-   # - name: Remove directory if it exists
-  #file:
-  #  path: /path/to/directory
-  #  state: absent
-
-   # - name: Clone camera_binder_aa repository
-   #   git:
-   #     repo: https://github.com/chrismcfee/camerapub
-   #     dest: /home/zignage/camerapub
-   #     clone: yes
-   #     update: yes
 
     - name: Create camera_binder directory if it doesn't exist
       file:
         path: /home/zignage/camera_binder
         state: directory
         mode: '0755'
+
     - name: Delete livedooh_camera_uuid.txt
       file:
         path: /etc/camera_binding/livedooh_camera_uuid.txt
         state: absent
+
     - name: Delete vidireports_camera_uuid.txt
       file:
         path: /etc/camera_binding/vidireports_camera_uuid.txt
         state: absent
-
-   # - name: delete old vidireports
-   #   file:
-   #     path: /home/zignage/wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
-   #     state: absent
-
-  #  - name: Copy files from cloned repo to camera_binder directory
-  #    copy:
-  #      src: "/home/zignage/camera_binder_aa/{{ item }}"
-  #      dest: "/home/zignage/camera_binder/{{ item }}"
-  #      remote_src: yes
-  #      force: yes
-  #      mode: '0644'
-  #    with_items:
-  #      - camera_binder.py
-  #      - camera-setup.sh
-  #      - camera_binder.service
-
 
     - name: Copy camera_binder.service
       copy:
@@ -59,6 +32,7 @@
         remote_src: yes
         force: yes
         mode: '0644'
+
     - name: Copy camera_binder.py
       copy:
         src: /home/zignage/camerapub/camera_binder.py
@@ -66,7 +40,8 @@
         remote_src: yes
         force: yes
         mode: '0644'
-    - name: Copy udevrules
+
+    - name: Copy udev rules
       copy:
         src: /home/zignage/camerapub/camera-permissions.rules
         dest: /etc/udev/rules.d/99-camera-permissions.rules
@@ -74,7 +49,7 @@
         force: yes
         mode: '0644'
 
-    - name: Copy udevrules
+    - name: Copy camera config
       copy:
         src: /home/zignage/camerapub/camera_config.json
         dest: /etc/camera_binding/camera_config.json
@@ -88,51 +63,55 @@
         dest: /usr/local/bin/camera-setup.sh
         mode: '0755'
 
-
-
     - name: Apply udev rules and permissions
-  become: yes
-  block:
-    - name: Reload udev rules
-      shell: |
-        udevadm control --reload-rules
-        udevadm trigger
+      block:
+        - name: Reload udev rules
+          shell: |
+            udevadm control --reload-rules
+            udevadm trigger
 
-    - name: Ensure zignage user is in video group
-      user:
-        name: zignage
-        groups: video
-        append: yes
+        - name: Ensure zignage user is in video group
+          user:
+            name: zignage
+            groups: video
+            append: yes
 
-    - name: Set correct permissions on video devices
-      shell: |
-        chmod 660 /dev/video*
-        chown root:video /dev/video*
+        - name: Set correct permissions on video devices
+          shell: |
+            chmod 660 /dev/video*
+            chown root:video /dev/video*
 
-    - name: Set correct permissions on camera symlinks
-      shell: |
-        chmod 660 /dev/camera*
-        chown root:video /dev/camera*
+        - name: Set correct permissions on camera symlinks
+          shell: |
+            chmod 660 /dev/camera*
+            chown root:video /dev/camera*
+          ignore_errors: yes  # In case symlinks don't exist yet
 
-    - name: Set permissions for video devices user11
-      become: yes
-      become_user: root
-      shell: |
-        sudo chown root:root /etc/camera_binding/camera_config.json
+        - name: Set config file permissions
+          file:
+            path: /etc/camera_binding/camera_config.json
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Reload systemd daemon
+          systemd:
+            daemon_reload: yes
+
+        - name: Restart camera_binder service
+          systemd:
+            name: camera_binder
+            state: restarted
+
+    - name: Wait for service to start
+      pause:
+        seconds: 5
+
+    - name: Check service status
+      shell: "systemctl status camera_binder.service"
+      register: service_status
       ignore_errors: yes
 
-    - name: Set permissions for video devices user22
-      become: yes
-      become_user: root
-      shell: |
-        sudo chmod 644 /etc/camera_binding/camera_config.json
-      ignore_errors: yes
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: yes
-    - name: Restart camera_binder service
-      become: yes
-      become_user: root
-      shell: |
-        sudo systemctl restart camera_binder
-      ignore_errors: yes
+    - name: Display service status
+      debug:
+        var: service_status.stdout_lines
