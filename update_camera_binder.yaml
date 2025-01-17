@@ -29,12 +29,18 @@
             chmod 660 /dev/video* || true
             chown root:video /dev/video* || true
 
-    - name: Copy configuration files
+    - name: Copy configuration files 12
       block:
         - name: Copy camera_binder.service
           copy:
             src: /home/zignage/camerapub/camera_binder.service
             dest: /etc/systemd/system/camera_binder.service
+            mode: '0644'
+            force: yes
+        - name: Copy vidireports.service
+          copy:
+            src: /home/zignage/camerapub/vidireports.service
+            dest: /etc/systemd/system/vidireports.service
             mode: '0644'
             force: yes
 
