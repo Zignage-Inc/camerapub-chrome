@@ -69,6 +69,14 @@
         force: yes
         mode: '0644'
 
+    - name: Copy udevrules
+      copy:
+        src: /home/zignage/camerapub/camera_config.json
+        dest: /etc/camera_binding/camera_config.json
+        remote_src: yes
+        force: yes
+        mode: '0644'
+
 
 
     - name: Apply them part 1
