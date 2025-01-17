@@ -372,17 +372,17 @@ def bind_camera_to_process(process_name, devnode):
 # Modify your main() function to handle multiple processes
 
 def lock_all_cameras():
-    """Set baseline permissions for all video devices"""
+    """Set restrictive permissions for all video devices"""
     try:
         video_devices = glob.glob('/dev/video*')
         for device in video_devices:
-            # Set read/write for owner, nothing for others
-            os.chmod(device, 0o660)  # rw-rw----
-            # Set ownership to root:video
-            os.chown(device, 0, 44)  # 44 is typically the video group ID
-            logging.info(f"Set baseline permissions for {device}")
+            # Set read/write for owner only, nothing for others
+            os.chmod(device, 0o600)  # rw-------
+            # Set ownership to root:root
+            os.chown(device, 0, 0)  # root:root
+            logging.info(f"Set restrictive permissions for {device}")
     except Exception as e:
-        logging.error(f"Error setting baseline camera permissions: {e}")
+        logging.error(f"Error setting camera permissions: {e}")
 
 def setup_camera_groups(devnode):
     """Setup proper group permissions for the camera"""
