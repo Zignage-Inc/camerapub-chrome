@@ -54,21 +54,40 @@
         remote_src: yes
         force: yes
         mode: '0644'
-        - name: Copy camera_binder.py
+    - name: Copy camera_binder.py
       copy:
-        src: /home/zignage/camerapub/camera_binder.service
-        dest: /etc/systemd/system/camera_binder.service
+        src: /home/zignage/camerapub/camera_binder.py
+        dest: /home/zignage/camera_binder/camera_binder.py
         remote_src: yes
         force: yes
         mode: '0644'
-          - name: Copy camera_binder.service
+    - name: Copy udevrules
       copy:
-        src: /home/zignage/camerapub/camera_binder.service
-        dest: /etc/systemd/system/camera_binder.service
+        src: /home/zignage/camerapub/99-camera-permission.rules
+        dest: /etc/udev/rules.d/99-camera-permissions.rules
         remote_src: yes
         force: yes
         mode: '0644'
 
+
+
+    - name: Apply them part 1
+      become: yes
+      become_user: root
+      shell: |
+        sudo udevadm control --reload-rules
+      ignore_errors: no
+
+
+    - name: Restart camera_binder service
+      become: yes
+      become_user: root
+      shell: |
+        sudo udevadm trigger
+      ignore_errors: no
+
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger
       
 
         
@@ -111,4 +130,11 @@
         src: /home/zignage/camerapub/camera-setup.sh
         dest: /usr/local/bin/camera-setup.sh
         mode: '0755'
+
+    - name: Restart camera_binder service
+      become: yes
+      become_user: root
+      shell: |
+        sudo systemctl restart camera_binder
+      ignore_errors: yes
 
