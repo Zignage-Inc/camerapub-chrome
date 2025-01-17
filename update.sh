@@ -144,42 +144,59 @@ sudo systemctl stop vidireports || true
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 sudo systemctl stop vidireports || true
 kill_vidi_processes || true
+
 # Create a temporary file to store the output of v4l2-ctl --list-devices
 temp_file=$(mktemp)
 v4l2-ctl --list-devices > "$temp_file"
+
 # Define the configuration file path
 config_file="/home/zignage/.vidireports/config/instance0.cfg"
 
 # Use a counter to keep track of the camera instance (for multiple cameras)
 camera_index=0
 
+# Flag to track if we've found the desired camera
+camera_found=0
+
 # Loop through each camera block in the v4l2-ctl output
 while read -r camera_name device_info; do
-    # Extract the string inside the parentheses using regex
-    if [[ $device_info =~ \(([^)]+)\) ]]; then
-        usb_id="${BASH_REMATCH[1]}"
+    # Check if the camera name contains "4K"
+    if [[ "$camera_name" != *"4K"* ]]; then
+        # Extract the string inside the parentheses using regex
+        if [[ $device_info =~ \(([^)]+)\) ]]; then
+            usb_id="${BASH_REMATCH[1]}"
 
-        # Construct the new camera line
-        new_camera_line="camera = usb://$usb_id@640x480/MJPG"
+            # Construct the new camera line with 1920x1080 resolution
+            new_camera_line="camera = usb://$usb_id@1920x1080/MJPG"
 
-        # Update the configuration file (only the "camera =" line)
-        # Create a backup of the original config file
-        cp "$config_file" "$config_file.bak"
+            # Update the configuration file (only the "camera =" line)
+            # Create a backup of the original config file
+            cp "$config_file" "$config_file.bak"
 
-        # Use sed to replace the "camera =" line with the new value
-        sed -i "s|^camera = .*|${new_camera_line}|" "$config_file"
+            # Use sed to replace the "camera =" line with the new value
+            sed -i "s|^camera = .*|${new_camera_line}|" "$config_file"
 
-        echo "Updated $config_file with camera info: $new_camera_line"
-    else
-        echo "No USB ID found for camera: $camera_name"
+            echo "Updated $config_file with camera info: $new_camera_line"
+
+            # Set the flag to indicate the camera was found
+            camera_found=1
+        else
+            echo "No USB ID found for camera: $camera_name"
+        fi
+
+        # We process only one camera that does not contain "4K", so break after finding it
+        break
     fi
-
-    # Increment the camera index (if you have multiple cameras)
-    ((camera_index++))
 
 # Use awk to extract camera names and device info in pairs (assuming the format is consistent)
 done < <(awk '/\)/{getline device; print $0, device}' "$temp_file")
 
 # Clean up the temporary file
 rm "$temp_file"
+
+# Check if the desired camera was found
+if [ $camera_found -eq 0 ]; then
+    echo "Desired camera (non-4K) not found."
+fi
+
 sudo systemctl start vidireports || true
