@@ -3,7 +3,7 @@
 # Set baseline permissions for all video devices
 ACTION=="add", SUBSYSTEM=="video4linux", GROUP="video", MODE="0660", OWNER="root"
 
-# 4K Camera rule
+# 4K Camera rule (create both camera_4k and camera_livedooh symlinks)
 KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0415", \
     SYMLINK+="camera_4k", \
     SYMLINK+="camera_livedooh", \
@@ -11,13 +11,10 @@ KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idPro
     MODE="0660", \
     OWNER="root"
 
-# 1080p Camera rule
+# 1080p Camera rule (create both camera_1080p and camera_vidireports symlinks)
 KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0577", \
     SYMLINK+="camera_1080p", \
     SYMLINK+="camera_vidireports", \
     GROUP="video", \
     MODE="0660", \
     OWNER="root"
-
-# Ensure symlinks have correct permissions
-SYMLINK=="camera_*", GROUP="video", MODE="0660", OWNER="root"
