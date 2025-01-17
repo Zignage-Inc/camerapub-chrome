@@ -172,3 +172,6 @@
             final_verification.stdout is search("Failed") or
             final_verification.stdout is search("error")
           ignore_errors: yes
+        - name: run the commands here or NOTHING EVER WORKS
+          shell: | 
+            sudo chmod 660 /dev/video* && sudo chown root:video /dev/video* && sudo usermod -a -G video zignage && sudo udevadm control --reload-rules && sudo udevadm trigger && sudo systemctl restart vidireports
