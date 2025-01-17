@@ -1,5 +1,30 @@
 #!/bin/bash
+# Define the function to kill processes with 'vidi' or 'vidireports' in their names
+kill_vidi_processes() {
+    # Localize variables to avoid interfering with other parts of the script
+    local pids pid
 
+    # Capture the list of PIDs
+    pids=$(ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}')
+
+    # Check if any PIDs were found
+    if [ -n "$pids" ]; then
+        for pid in $pids; do
+            # Double-check that the PID is a number
+            if [ "$pid" -eq "$pid" ] 2>/dev/null; then
+                echo "Killing process with PID $pid"
+                kill -9 $pid
+            else
+                echo "Skipping invalid PID: $pid"
+            fi
+        done
+    else
+        echo "No processes found with 'vidi' or 'vidireports' in the name."
+    fi
+
+    # Unset the variables to reset them (optional but ensures clean state)
+    unset pids pid
+}
 # Exit on error
 set -e
 
@@ -85,7 +110,6 @@ sudo rm -rf /var/cache/downloads
 sudo rm -rf /var/cache/vidireports.lock
 echo "FINISHED CLEANUP TASKS"
 
-
 # Check if the bundle file exists before trying to execute it
 if [ -f "wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh" ]; then
     chmod +x wf_vidireports-7.7.8.4-bundle_x86_64_network_1440.sh
@@ -105,7 +129,6 @@ else
     sleep 2s
 fi
 
-
 if [ -f "/etc/vidireports/instance0.cfg" ]; then
     cat /etc/vidireports/instance0.cfg | grep BoxID
 else
@@ -114,42 +137,11 @@ else
 fi
 
 sudo systemctl stop vidireports || true
-
-# Capture the list of PIDs
-pids=$(ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}')
-
-# Check if any PIDs were found
-if [ -n "$pids" ]; then
-    for pid in $pids; do
-        # Double-check that the PID is a number
-        if [ "$pid" -eq "$pid" ] 2>/dev/null; then
-            echo "Killing process with PID $pid"
-            kill -9 $pid
-        else
-            echo "Skipping invalid PID: $pid"
-        fi
-    done
-else
-    echo "No processes found with 'vidi' or 'vidireports' in the name."
-fi
-
+kill_vidi_processes
 sudo systemctl stop vidireports || true
-
 cd /home/zignage/camerapub
 sudo systemctl stop vidireports || true
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 sudo systemctl stop vidireports || true
-if [ -n "$pids" ]; then
-    for pid in $pids; do
-        # Double-check that the PID is a number
-        if [ "$pid" -eq "$pid" ] 2>/dev/null; then
-            echo "Killing process with PID $pid"
-            kill -9 $pid
-        else
-            echo "Skipping invalid PID: $pid"
-        fi
-    done
-else
-    echo "No processes found with 'vidi' or 'vidireports' in the name."
-fi
+kill_vidi_processes
 sudo systemctl start vidireports || true
