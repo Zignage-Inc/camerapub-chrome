@@ -115,7 +115,12 @@ fi
 
 sudo systemctl stop vidireports || true
 
-ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}' | xargs -I {} kill -9 {}
+ps aux | grep -E 'vidi|vidireports' | grep -v grep
+pids=$(ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}')
+for pid in $pids; do
+    echo "Killing process with PID $pid"
+    kill -9 $pid
+done
 
 sudo systemctl stop vidireports || true
 
