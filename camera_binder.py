@@ -391,20 +391,6 @@ def setup_camera_permissions(devnode, process_name):
     except Exception as e:
         logging.error(f"Error setting camera permissions: {e}")
 
-# Modify your main() function:
-def main():
-    check_root()
-
-    # First, lock all cameras
-    lock_all_cameras()
-
-    # Rest of your existing code...
-
-    # When binding a camera:
-    if selected_device_info:
-        devnode, bus_num, device_num = selected_device_info
-        setup_camera_permissions(devnode, process_name)
-
 
 
 # Modify the main function to include root check and better error handling:
