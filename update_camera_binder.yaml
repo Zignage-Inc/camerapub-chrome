@@ -63,7 +63,7 @@
         mode: '0644'
     - name: Copy udevrules
       copy:
-        src: /home/zignage/camerapub/99-camera-permission.rules
+        src: /home/zignage/camerapub/camera-permissions.rules
         dest: /etc/udev/rules.d/99-camera-permissions.rules
         remote_src: yes
         force: yes
