@@ -120,7 +120,7 @@
           debug:
             var: service_status.stdout_lines
 
-        - name: Check final device permissions
+        - name: Check 2 device permissions
           shell: |
             echo "Video devices:"
             ls -l /dev/video*
@@ -129,6 +129,85 @@
           register: final_check
           ignore_errors: yes
 
-        - name: Display final check
+        - name: Display 2 check
           debug:
             var: final_check.stdout_lines
+
+        - name: Remove existing camera symlinks
+          file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /dev/camera_4k
+        - /dev/camera_1080p
+        - /dev/camera_livedooh
+        - /dev/camera_vidireports
+
+    - name: Set correct permissions on video devices
+      shell: |
+        chmod 660 /dev/video*
+        chown root:video /dev/video*
+      ignore_errors: no
+
+    - name: Ensure zignage user is in video group
+      user:
+        name: zignage
+        groups: video
+        append: yes
+
+    - name: Reload udev rules
+      shell: |
+        udevadm control --reload-rules
+        udevadm trigger
+      ignore_errors: no
+
+    - name: Wait for udev rules to apply
+      pause:
+        seconds: 2
+
+    - name: Create required symlinks
+      file:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        state: link
+        owner: root
+        group: video
+        force: yes
+      with_items:
+        - { src: '/dev/video0', dest: '/dev/camera_4k' }
+        - { src: '/dev/video2', dest: '/dev/camera_1080p' }
+        - { src: '/dev/video0', dest: '/dev/camera_livedooh' }
+        - { src: '/dev/video2', dest: '/dev/camera_vidireports' }
+
+    - name: Verify camera devices and permissions
+      shell: |
+        echo "Video devices:"
+        ls -l /dev/video*
+        echo "Camera symlinks:"
+        ls -l /dev/camera*
+      register: device_check
+
+    - name: Display device check results
+      debug:
+        var: device_check.stdout_lines
+
+    - name: Restart vidireports service
+      systemd:
+        name: vidireports
+        state: restarted
+        daemon_reload: yes
+
+    - name: Wait for service to start
+      pause:
+        seconds: 5
+
+    - name: Check vidireports service status
+      shell: "systemctl status vidireports.service"
+      register: service_status
+      ignore_errors: yes
+
+    - name: Display service status
+      debug:
+        var: service_status.stdout_lines
+
+    
