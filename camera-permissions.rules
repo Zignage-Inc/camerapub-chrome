@@ -1,19 +1,10 @@
 # /etc/udev/rules.d/99-camera-permissions.rules
-#KERNEL=="video*", ATTRS{idVendor}=="[vendor_id]", ATTRS{idProduct}=="[product_id]", SYMLINK+="camera_locked", TAG+="camera_access"
-# Lock down all video devices by default
-#ACTION=="add", SUBSYSTEM=="video4linux", GROUP="video", MODE="0660"
+
+# First, set default restrictive permissions for all video devices
 ACTION=="add", SUBSYSTEM=="video4linux", MODE="0600", OWNER="root", GROUP="root"
 
-# Allow access only through our symlinks
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="[your_4k_camera_vendor_id]", MODE="0600", OWNER="root", GROUP="root"
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="[your_1080p_camera_vendor_id]", MODE="0600", OWNER="root", GROUP="root"
+# Rules for 4K camera (update with your actual vendor and product IDs)
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="082d", SYMLINK+="camera_4k", MODE="0600", OWNER="root", GROUP="root"
 
-# Optional: You can add specific exceptions if needed
-# For example, to allow specific cameras based on vendor/product ID:
-# ACTION=="add", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="0abc", ATTRS{idProduct}=="0123", MODE="0600", OWNER="zignage"
-#sudo udevadm control --reload-rules
-#sudo udevadm trigger
-#To verify what rules apply to your cameras, you can use:
-#udevadm test $(udevadm info -q path -n /dev/video0)
-#udevadm info -a -n /dev/video0
-#udevadm info -a -n /dev/video0
+# Rules for 1080p camera (update with your actual vendor and product IDs)
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", SYMLINK+="camera_1080p", MODE="0600", OWNER="root", GROUP="root"
