@@ -1,9 +1,8 @@
-# Set default permissions for all video devices
+# Reset permissions for all video devices
 ACTION=="add", SUBSYSTEM=="video4linux", GROUP="video", MODE="0660", OWNER="root"
 
-# Create symlinks and set permissions for specific cameras
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0415", SYMLINK+="camera_4k", GROUP="video", MODE="0660", OWNER="root", TAG+="camera_access"
-KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0577", SYMLINK+="camera_1080p", GROUP="video", MODE="0660", OWNER="root", TAG+="camera_access"
+# 4K Camera
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0415", SYMLINK+="camera_4k", GROUP="video", MODE="0660", OWNER="root", RUN+="/usr/bin/sh -c 'echo 4k > /tmp/camera_type_%k'"
 
-# Ensure permissions are maintained
-KERNEL=="camera_*", GROUP="video", MODE="0660", OWNER="root"
+# 1080p Camera
+KERNEL=="video*", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="32e4", ATTRS{idProduct}=="0577", SYMLINK+="camera_1080p", GROUP="video", MODE="0660", OWNER="root", RUN+="/usr/bin/sh -c 'echo 1080p > /tmp/camera_type_%k'"
