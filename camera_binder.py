@@ -7,6 +7,7 @@ import sys
 import hashlib
 import glob
 import re
+import grp
 
 # Configure logging
 LOGFILE = '/var/log/camera_binding.log'
@@ -372,21 +373,37 @@ def bind_camera_to_process(process_name, devnode):
 # Modify your main() function to handle multiple processes
 
 def lock_all_cameras():
-    """Make all video devices restrictive by default"""
+    """Set baseline permissions for all video devices"""
     try:
         video_devices = glob.glob('/dev/video*')
         for device in video_devices:
-            os.chmod(device, 0o000)  # Remove all permissions
-            logging.info(f"Locked permissions for {device}")
+            # Set read/write for owner, nothing for others
+            os.chmod(device, 0o660)  # rw-rw----
+            # Set ownership to root:video
+            os.chown(device, 0, 44)  # 44 is typically the video group ID
+            logging.info(f"Set baseline permissions for {device}")
     except Exception as e:
-        logging.error(f"Error locking cameras: {e}")
+        logging.error(f"Error setting baseline camera permissions: {e}")
+
+def setup_camera_groups(devnode):
+    """Setup proper group permissions for the camera"""
+    try:
+        # Add the device to the video group
+        video_gid = grp.getgrnam('video').gr_gid
+        os.chown(devnode, 0, video_gid)
+        # Set permissions to allow group access
+        os.chmod(devnode, 0o660)  # rw-rw----
+        logging.info(f"Set group permissions for {devnode}")
+    except Exception as e:
+        logging.error(f"Error setting group permissions: {e}")
 
 def setup_camera_permissions(devnode, process_name):
     """Set up specific permissions for a camera device"""
     try:
-        # Make the device accessible only to the specific user/group
-        os.chmod(devnode, 0o600)
-        os.chown(devnode, get_uid(CAMERA_USER), get_gid(CAMERA_USER))
+        # Make the device accessible to the video group
+        video_gid = grp.getgrnam('video').gr_gid
+        os.chown(devnode, 0, video_gid)
+        os.chmod(devnode, 0o660)  # rw-rw----
         logging.info(f"Set permissions for {devnode} for process {process_name}")
     except Exception as e:
         logging.error(f"Error setting camera permissions: {e}")
@@ -408,7 +425,7 @@ def main():
     for bus_num, device_num, description in camera_devices:
         logging.info(f"  {description} (Bus {bus_num}, Device {device_num})")
 
-    # First, lock all cameras
+    # Set baseline permissions for all cameras
     lock_all_cameras()
 
     # Select the best camera (preferring 4K)
@@ -418,17 +435,17 @@ def main():
         logging.error("No suitable camera found")
         sys.exit(1)
 
-    # Add these lines here
     devnode, bus_num, device_num = selected_device_info
     logging.info(f"Selected camera device: {devnode}")
 
-    # Set initial restrictive permissions
-    setup_camera_permissions(devnode, CAMERA_USER)
+    try:
+        # Setup proper group permissions
+        setup_camera_groups(devnode)
 
-    # Process binding for each configured process
-    for process_name, config in PROCESS_CAMERA_MAPPING.items():
-        expected_uuid_file = config['expected_uuid_file']
-        symlink_path = config['symlink_path']
+        # Process binding for each configured process
+        for process_name, config in PROCESS_CAMERA_MAPPING.items():
+            expected_uuid_file = config['expected_uuid_file']
+            symlink_path = config['symlink_path']
 
         # Ensure directory exists for UUID file and symlink
         ensure_directory_exists(expected_uuid_file)
@@ -452,19 +469,18 @@ def main():
 
         # Create symlink with proper permissions
         try:
-            if os.path.exists(symlink_path) or os.path.islink(symlink_path):
-                os.remove(symlink_path)
-            os.symlink(devnode, symlink_path)
-            os.chown(symlink_path, get_uid(CAMERA_USER), get_gid(CAMERA_USER))
-            logging.info(f"Created symlink {symlink_path} -> {devnode}")
-        except Exception as e:
-            logging.error(f"Failed to create symlink: {e}")
-            continue
+                if os.path.exists(symlink_path) or os.path.islink(symlink_path):
+                    os.remove(symlink_path)
+                os.symlink(devnode, symlink_path)
+                # Set symlink ownership
+                os.chown(symlink_path, get_uid(CAMERA_USER), get_gid(CAMERA_USER))
+                logging.info(f"Created symlink {symlink_path} -> {devnode}")
+            except Exception as e:
+                logging.error(f"Failed to create symlink: {e}")
+                continue
 
-        # Set device permissions
-        try:
-            adjust_permissions(devnode)
-        except Exception as e:
-            logging.error(f"Failed to set permissions: {e}")
+    except Exception as e:
+        logging.error(f"Error in main execution: {e}")
+        sys.exit(1)
 if __name__ == '__main__':
     main()
