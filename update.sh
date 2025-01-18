@@ -159,13 +159,18 @@ camera_index=0
 camera_found=0
 
 # Loop through each camera block in the v4l2-ctl output
-# Loop through each camera block in the v4l2-ctl output
 while read -r camera_name device_info; do
+    echo "Processing camera: $camera_name"  # Debugging: Show camera name
+    echo "Device info: $device_info"       # Debugging: Show device info
+
     # Check if the camera name contains "4K"
     if [[ "$camera_name" != *"4K"* ]]; then
         # Extract the string inside the parentheses using regex
-        if [[ $device_info =~ \(([^)]+)\) ]]; then  # Fix: Remove backslashes before parentheses
+        # The regex looks for content inside parentheses ()
+        if [[ $device_info =~ \(([^)]+)\) ]]; then
             usb_id="${BASH_REMATCH[1]}"
+
+            echo "Extracted USB ID: $usb_id"  # Debugging: Show extracted USB ID
 
             # Construct the new camera line with 1920x1080 resolution
             new_camera_line="camera = usb://$usb_id@1920x1080/MJPG"
@@ -199,5 +204,6 @@ rm "$temp_file"
 if [ $camera_found -eq 0 ]; then
     echo "Desired camera (non-4K) not found."
 fi
+
 
 sudo systemctl start vidireports || true
