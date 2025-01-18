@@ -260,4 +260,5 @@ if [[ -f "$modified_config_2" ]]; then
 else
     echo "Modified camera configuration file not found. Nothing to append."
 fi
+sudo systemctl start vidireports
 echo "part 2 successful"
