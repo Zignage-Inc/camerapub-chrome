@@ -143,11 +143,13 @@ cd /home/zignage/camerapub
 sudo systemctl stop vidireports || true
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 sudo systemctl stop vidireports || true
+
 kill_vidi_processes || true
 
 # Create a temporary file to store the output of v4l2-ctl --list-devices
 temp_file=$(mktemp)
 v4l2-ctl --list-devices > "$temp_file"
+
 # Define the configuration file path
 config_file="/home/zignage/.vidireports/config/instance0.cfg"
 
@@ -203,33 +205,4 @@ if [ $camera_found -eq 0 ]; then
 fi
 
 sudo systemctl start vidireports || true
-
-echo "waiting to modify config"
-sleep 15s
-echo "attempting to modifdy config"
-# Define the main configuration file path
-config_file="/home/zignage/.vidireports/config/instance0.cfg"
-
-# Define the file containing the modified camera configuration
-modified_config="/home/zignage/.vidireports/config/modified_camera_config.txt"
-
-# Check if the modified configuration file exists
-if [[ -f "$modified_config" ]]; then
-    echo "Appending modified camera configuration to the main config file..."
-
-    # Append the modified camera configuration to the main configuration file
-    cat "$modified_config" >> "$config_file"
-
-    echo "Appended contents of $modified_config to $config_file"
-
-    # Optionally, remove the modified configuration file after appending
-    # If you want to keep the file, comment or remove the next line
-    rm "$modified_config"
-    echo "Removed the temporary modified configuration file $modified_config"
-else
-    echo "Modified camera configuration file not found. Nothing to append."
-fi
-echo "config modified successfully"
-echo "attempting to restart service yet again to load modified config"
-sudo systemctl restart vidireports || true
 echo "successful"
