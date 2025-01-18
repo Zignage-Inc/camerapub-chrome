@@ -148,9 +148,11 @@ kill_vidi_processes || true
 # Create a temporary file to store the output of v4l2-ctl --list-devices
 temp_file=$(mktemp)
 v4l2-ctl --list-devices > "$temp_file"
-
 # Define the configuration file path
 config_file="/home/zignage/.vidireports/config/instance0.cfg"
+
+# Define a file to save the changes (this will be a non-temporary file)
+modified_config="/home/zignage/.vidireports/config/modified_camera_config.txt"
 
 # Use a counter to keep track of the camera instance (for multiple cameras)
 camera_index=0
@@ -174,14 +176,10 @@ while read -r camera_name device_info; do
             # Construct the new camera line with 1920x1080 resolution
             new_camera_line="camera = usb://$usb_id@1920x1080/MJPG"
 
-            # Update the configuration file (only the "camera =" line)
-            # Create a backup of the original config file
-            cp "$config_file" "$config_file.bak"
+            # Save the new camera configuration to a separate file
+            echo "$new_camera_line" > "$modified_config"
 
-            # Use sed to replace the "camera =" line with the new value
-            sed -i "s|^camera = .*|${new_camera_line}|" "$config_file"
-
-            echo "Updated $config_file with camera info: $new_camera_line"
+            echo "Saved new camera configuration to $modified_config"
 
             # Set the flag to indicate the camera was found
             camera_found=1
