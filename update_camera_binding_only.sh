@@ -3,10 +3,8 @@
 kill_vidi_processes() {
     # Localize variables to avoid interfering with other parts of the script
     local pids pid
-
     # Capture the list of PIDs
     pids=$(ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}')
-
     # Check if any PIDs were found
     if [ -n "$pids" ]; then
         for pid in $pids; do
@@ -21,12 +19,68 @@ kill_vidi_processes() {
     else
         echo "No processes found with 'vidi' or 'vidireports' in the name."
     fi
-
     # Unset the variables to reset them (optional but ensures clean state)
     unset pids pid
 }
 # Exit on error
 set -e
+echo "Setting correct home permissions"
+sudo chown -R zignage:zignage /home/zignage || {
+    echo "Failed to set home permissions"
+    exit 1
+}
+# Install required packages
+echo "Installing required packages..."
+sudo apt-get install -y sshpass ansible git || {
+    echo "Failed to install required packages"
+    exit 1
+}
+
+# Create necessary directories
+echo "Creating directories..."
+for dir in "/home/zignage/camera_binder" "/home/zignage/camerapub"; do
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir" || {
+            echo "Failed to create directory: $dir"
+            exit 1
+        }
+    fi
+done
+
+# Remove existing repo if it exists
+echo "Removing existing repo if present..."
+rm -rf /home/zignage/camerapub
+
+# Clone the public GitHub repo
+echo "Cloning repository..."
+git clone https://github.com/chrismcfee/camerapub.git /home/zignage/camerapub || {
+    echo "Failed to clone repository"
+    exit 1
+}
+
+# Copy files to camera_binder directory
+echo "Copying files..."
+for file in "camera-setup.sh" "camera_binder.service" "camera_binder.py"; do
+    cp "/home/zignage/camerapub/$file" "/home/zignage/camera_binder/" || {
+        echo "Failed to copy $file"
+        exit 1
+    }
+done
+
+echo "Script completed successfully so far..."
+sleep 1s 
+echo "continuing..."
+sleep 1s
+
+# Copy yaml file to camerapub directory
+#cp /home/zignage/nomesh.yaml /home/zignage/camerapub/
+
+# Change directory and run ansible playbook
+cd /home/zignage/camerapub
+
+# Return to home directory
+cd /home/zignage
+sleep 1s
 
 sudo systemctl stop vidireports || true
 kill_vidi_processes || true
