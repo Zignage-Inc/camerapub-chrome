@@ -28,12 +28,6 @@ kill_vidi_processes() {
 # Exit on error
 set -e
 
-echo "Setting correct home permissions"
-sudo chown -R zignage:zignage /home/zignage || {
-    echo "Failed to set home permissions"
-    exit 1
-}
-
 if ! sudo rm vidireports.sh; then
     echo "Script continuing"
 fi
