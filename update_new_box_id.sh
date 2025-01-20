@@ -262,3 +262,4 @@ else
 fi
 sudo systemctl start vidireports
 echo "part 2 successful"
+echo "Completed"
