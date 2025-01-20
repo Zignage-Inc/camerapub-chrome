@@ -24,11 +24,7 @@ kill_vidi_processes() {
 }
 # Exit on error
 set -e
-echo "Setting correct home permissions"
-sudo chown -R zignage:zignage /home/zignage || {
-    echo "Failed to set home permissions"
-    exit 1
-}
+
 # Install required packages
 echo "Installing required packages..."
 sudo apt-get install -y sshpass ansible git || {
