@@ -188,6 +188,8 @@ kill_vidi_processes || true
 echo "part 2 of script"
 # Define the main configuration file path
 config_file_2="/home/zignage/.vidireports/config/instance0.cfg"
+config_file_3="/etc/vidireports/instance0.cfg"
+
 
 # Define the file containing the modified camera configuration
 modified_config_2="/home/zignage/.vidireports/config/modified_camera_config.txt"
@@ -197,16 +199,19 @@ if [[ -f "$modified_config_2" ]]; then
     echo "Appending modified camera configuration to the main config file..."
 
     # Append the modified camera configuration to the main configuration file
-    cat "$modified_config" >> "$config_file"
+    cat "$modified_config_2" >> "$config_file_2"
+    cat "$modified_config_2" >> "$config_file_3"
 
-    echo "Appended contents of $modified_config to $config_file"
+    echo "Appended contents of $modified_config_2 to $config_file_2"
+    echo "Appended contents of $modified_config_2 to $config_file_3"
 
     # Optionally, remove the modified configuration file after appending
     # If you want to keep the file, comment or remove the next line
     rm "$modified_config"
-    echo "Removed the temporary modified configuration file $modified_config"
+    echo "DONE - Removed the temporary modified configuration file $modified_config"
 else
     echo "Modified camera configuration file not found. Nothing to append."
 fi
 sudo systemctl start vidireports
 echo "part 2 successful"
+echo "Completed"
