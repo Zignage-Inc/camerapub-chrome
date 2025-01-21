@@ -211,3 +211,30 @@ fi
 sudo systemctl start vidireports
 echo "part 2 successful"
 echo "Completed"
+echo "part 3 - load the new service file"
+echo "starting"
+# Create/overwrite the service file
+sudo tee /etc/systemd/system/vidireports.service > /dev/null <<'EOF'
+[Unit]
+Description=VidiReports Service
+After=network.target
+[Service]
+Type=simple
+ExecStart=/home/zignage/.vidireports/7.7.8.4/./vidireports-bin-inner -d -l /home/zignage/.vidireports/ -c /home/zignage/.vidireports/config/
+Restart=on-failure
+User=zignage
+TimeoutStopSec=30
+Group=video
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd daemon and restart service
+sudo systemctl daemon-reload
+kill_vidi_processes || true
+sudo systemctl stop vidireports
+kill_vidi_processes || true
+kill_vidi_processes || true
+sudo systemctl start vidireports
+echo "Service updated and restarted successfully"
+echo "part 3 complete"
