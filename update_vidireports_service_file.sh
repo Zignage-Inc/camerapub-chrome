@@ -3,6 +3,7 @@
 VIDIREPORTS_PATH="/home/zignage/.vidireports/7.7.8.4/./vidireports"
 LOG_PATH="/home/zignage/.vidireports/VidiReports.log"
 CONFIG_PATH="/home/zignage/.vidireports/config/"
+rm /etc/systemd/system/vidireports.service
 sudo bash -c 'cat > /etc/systemd/system/vidireports.service <<EOL
 [Unit]
 Description=VidiReports Service
@@ -21,5 +22,6 @@ WantedBy=multi-user.target
 EOL'
 
 # Reload systemd daemon and restart service
+sudo systemctl stop vidireports
 sudo systemctl daemon-reload
-sudo systemctl restart vidireports
+sudo systemctl start vidireports
