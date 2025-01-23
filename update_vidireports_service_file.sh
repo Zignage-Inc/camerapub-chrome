@@ -1,3 +1,5 @@
+#!/bin/bash
+# Define the function to kill processes with 'vidi' or 'vidireports' in their names
 VIDIREPORTS_PATH="/home/zignage/.vidireports/7.7.8.4/./vidireports"
 LOG_PATH="/home/zignage/.vidireports/VidiReports.log"
 CONFIG_PATH="/home/zignage/.vidireports/config/"
