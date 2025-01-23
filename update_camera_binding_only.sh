@@ -220,7 +220,7 @@ Description=VidiReports Service
 After=network.target
 [Service]
 Type=simple
-ExecStart=/home/zignage/.vidireports/7.7.8.4/./vidireports -d -l /home/zignage/.vidireports/ -c /home/zignage/.vidireports/config/instance0.cfg
+ExecStart=ExecStart=/home/zignage/.vidireports/7.7.8.4/./vidireports-bin-inner -d -l /home/zignage/.vidireports/ -c /home/zignage/.vidireports/config/instance0.cfg
 Restart=on-failure
 User=zignage
 TimeoutStopSec=30
