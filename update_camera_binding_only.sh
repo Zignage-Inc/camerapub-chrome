@@ -6,8 +6,53 @@ modified_config="/home/zignage/.vidireports/config/modified_camera_config.txt"
 config_file="/home/zignage/.vidireports/config/instance0.cfg"
 config_file_etc="/etc/vidireports/instance0.cfg"
 
-# First part of your script remains the same until the camera detection...
-#[previous installation and setup code remains unchanged]
+# Install required packages
+echo "Installing required packages..."
+sudo apt-get install -y sshpass ansible git || {
+    echo "Failed to install required packages"
+    exit 1
+}
+# Create necessary directories
+echo "Creating directories..."
+for dir in "/home/zignage/camera_binder" "/home/zignage/camerapub"; do
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir" || {
+            echo "Failed to create directory: $dir"
+            exit 1
+        }
+    fi
+done
+# Remove existing repo if it exists
+echo "Removing existing repo if present..."
+rm -rf /home/zignage/camerapub
+# Clone the public GitHub repo
+echo "Cloning repository..."
+git clone https://github.com/chrismcfee/camerapub.git /home/zignage/camerapub || {
+    echo "Failed to clone repository"
+    exit 1
+}
+# Copy files to camera_binder directory
+echo "Copying files..."
+for file in "camera-setup.sh" "camera_binder.service" "camera_binder.py"; do
+    cp "/home/zignage/camerapub/$file" "/home/zignage/camera_binder/" || {
+        echo "Failed to copy $file"
+        exit 1
+    }
+done
+echo "Script completed successfully so far..."
+sleep 1s 
+echo "continuing..."
+sleep 1s
+cd /home/zignage/camerapub
+# Return to home directory
+cd /home/zignage
+sleep 1s
+sudo systemctl stop vidireports || true
+set -x
+cd /home/zignage && ./killvidi.sh
+cd /home/zignage/camerapub
+set -x
+ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 
 echo "part 1 starting soon"
 
