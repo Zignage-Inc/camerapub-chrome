@@ -70,7 +70,7 @@ camera_uid=$(grep -A1 "HD USB Camera" "$temp_file" | grep "usb" | tr -d '\t' | h
 
 if [ -n "$camera_uid" ]; then
     # Write the camera_uid configuration
-    echo "camera_uid = \"$camera_uid\"" > "$modified_config"
+    echo "camera = \"$camera_uid\"" > "$modified_config"
     echo "Found camera UID: $camera_uid"
 else
     echo "No HD USB camera UID found"
