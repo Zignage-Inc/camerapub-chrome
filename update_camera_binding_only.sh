@@ -1,4 +1,8 @@
 #!/bin/bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
 # Define the function to kill processes with 'vidi' or 'vidireports' in their names
 kill_vidi_processes() {
     # Localize variables to avoid interfering with other parts of the script
@@ -169,8 +173,6 @@ echo "part 2 of script"
 # Define the main configuration file path
 config_file_2="/home/zignage/.vidireports/config/instance0.cfg"
 config_file_3="/etc/vidireports/instance0.cfg"
-
-
 # Define the file containing the modified camera configuration
 modified_config_2="/home/zignage/.vidireports/config/modified_camera_config.txt"
 
