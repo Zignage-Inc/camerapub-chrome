@@ -67,11 +67,8 @@ cd /home/zignage
 sleep 1s
 sudo systemctl stop vidireports || true
 kill_vidi_processes || true
-sudo systemctl stop vidireports || true
 cd /home/zignage/camerapub
-sudo systemctl stop vidireports || true
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
-sudo systemctl stop vidireports || true
 kill_vidi_processes || true
 
 # Create a temporary file to store the output of v4l2-ctl --list-devices
@@ -163,7 +160,7 @@ echo "config modified successfully"
 echo "attempting to restart service yet again to load modified config"
 sudo systemctl restart vidireports || true
 echo "part 1 successful"
-echo "stopping"
+echo "trying to stop running processes"
 kill_vidi_processes || true
 sleep 15s
 sudo systemctl stop vidireports
@@ -207,10 +204,7 @@ CONFIG_PATH="/home/zignage/.vidireports/config/"
 
 # Reload systemd daemon and restart service
 sudo systemctl daemon-reload
-kill_vidi_processes || true
 sudo systemctl stop vidireports
-kill_vidi_processes || true
-kill_vidi_processes || true
 sudo systemctl start vidireports
 echo "Service updated and restarted successfully"
 echo "part 3 complete"
