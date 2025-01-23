@@ -1,5 +1,8 @@
 #!/bin/bash
 set -e
+modified_config="/home/zignage/.vidireports/config/modified_camera_config.txt"
+config_file="/home/zignage/.vidireports/config/instance0.cfg"
+config_file_etc="/etc/vidireports/instance0.cfg"
 # Install required packages
 echo "Installing required packages..."
 sudo apt-get install -y sshpass ansible git || {
@@ -42,10 +45,8 @@ cd /home/zignage/camerapub
 cd /home/zignage
 sleep 1s
 sudo systemctl stop vidireports || true
-set -x
 cd /home/zignage && ./killvidi.sh
 cd /home/zignage/camerapub
-set -x
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 echo "part 1 starting soon"
 
@@ -63,51 +64,51 @@ if [ -n "$camera_uid" ]; then
     echo "Found camera UID: $camera_uid"
 else
     echo "No HD USB camera UID found"
+    exit 1
 fi
 
 # Clean up
 rm "$temp_file"
 
-# Remove unwanted camera lines while preserving the correct one
-# Create a temporary file for the modified config
-temp_config=$(mktemp)
-
-# Remove camera lines with loopback devices but preserve other camera configurations
-sed '/camera.*loopback/d' "/home/zignage/.vidireports/config/instance0.cfg" | \
-    sed '/camera.*video/d' > "$temp_config"
-
-# Replace original file with cleaned version
-mv "$temp_config" "/home/zignage/.vidireports/config/instance0.cfg"
-
-echo "Removed unwanted camera configurations while preserving the correct camera line"
-
-sudo systemctl start vidireports || true
-
-echo "waiting to modify config"
-sleep 15s
-echo "attempting to modifdy config"
-# Define the main configuration file path
-config_file="/home/zignage/.vidireports/config/instance0.cfg"
-
-# Define the file containing the modified camera configuration
-modified_config="/home/zignage/.vidireports/config/modified_camera_config.txt"
-
-# Check if the modified configuration file exists
+# Remove unwanted camera lines and update configuration
 if [[ -f "$modified_config" ]]; then
-    echo "Appending modified camera configuration to the main config file..."
+    # Create temp file for cleaned config
+    temp_config=$(mktemp)
 
-    # Append the modified camera configuration to the main configuration file
-    cat "$modified_config" >> "$config_file"
+    # Remove unwanted camera lines
+    sed '/camera.*loopback/d' "$config_file" | \
+        sed '/camera.*video/d' > "$temp_config"
 
-    echo "Appended contents of $modified_config to $config_file"
+    # Append new camera configuration
+    cat "$modified_config" >> "$temp_config"
 
-    # Optionally, remove the modified configuration file after appending
-    # If you want to keep the file, comment or remove the next line
+    # Update both configuration files
+    cp "$temp_config" "$config_file"
+    if [[ -f "$config_file_etc" ]]; then
+        cp "$temp_config" "$config_file_etc"
+    fi
+
+    # Cleanup
+    rm "$temp_config"
     rm "$modified_config"
-    echo "Removed the temporary modified configuration file $modified_config"
+
+    echo "Configuration updated successfully"
 else
-    echo "Modified camera configuration file not found. Nothing to append."
+    echo "No camera configuration found to apply"
+    exit 1
 fi
+
+# Restart service
+sudo systemctl stop vidireports
+cd /home/zignage && ./killvidi.sh
+sleep 5s
+sudo systemctl start vidireports
+
+# Final daemon reload and service restart
+sudo systemctl daemon-reload
+sudo systemctl restart vidireports
+
+echo "Service updated and restarted successfully"
 echo "config modified successfully"
 echo "attempting to restart service yet again to load modified config"
 sudo systemctl restart vidireports || true
@@ -119,42 +120,19 @@ sudo systemctl stop vidireports
 cd /home/zignage && ./killvidi.sh
 echo "part 2 of script"
 # Define the main configuration file path
-config_file_2="/home/zignage/.vidireports/config/instance0.cfg"
-config_file_3="/etc/vidireports/instance0.cfg"
-# Define the file containing the modified camera configuration
-modified_config_2="/home/zignage/.vidireports/config/modified_camera_config.txt"
+
 
 # Check if the modified configuration file exists
-if [[ -f "$modified_config_2" ]]; then
-    echo "Appending modified camera configuration to the main config file..."
 
-    # Append the modified camera configuration to the main configuration file
-    cat "$modified_config_2" >> "$config_file_2"
-    cat "$modified_config_2" >> "$config_file_3"
-
-    echo "Appended contents of $modified_config_2 to $config_file_2"
-    echo "Appended contents of $modified_config_2 to $config_file_3"
-
-    # Optionally, remove the modified configuration file after appending
-    # If you want to keep the file, comment or remove the next line
-    rm "$modified_config"
-    echo "DONE - Removed the temporary modified configuration file $modified_config"
-else
-    echo "Modified camera configuration file not found. Nothing to append."
-fi
 sudo systemctl start vidireports
 echo "part 2 successful"
 echo "Completed"
 echo "part 3 - load the new service file"
-echo "starting"
-# Create/overwrite the service file
-VIDIREPORTS_PATH="/home/zignage/.vidireports/7.7.8.4/./vidireports"
-LOG_PATH="/home/zignage/.vidireports/VidiReports.log"
-CONFIG_PATH="/home/zignage/.vidireports/config/"
+echo "moved this part to other script which should execute automatically with this one"
 
 # Reload systemd daemon and restart service
 sudo systemctl daemon-reload
 sudo systemctl stop vidireports
 sudo systemctl start vidireports
 echo "Service updated and restarted successfully"
-echo "part 3 complete"
+echo "this script update camera binding is now complete"
