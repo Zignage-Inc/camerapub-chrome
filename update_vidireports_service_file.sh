@@ -22,10 +22,4 @@ EOL'
 
 # Reload systemd daemon and restart service
 sudo systemctl daemon-reload
-kill_vidi_processes || true
-sudo systemctl stop vidireports
-kill_vidi_processes || true
-kill_vidi_processes || true
-sudo systemctl start vidireports
-echo "Service updated and restarted successfully"
-echo "part 3 complete"
+sudo systemctl restart vidireports
