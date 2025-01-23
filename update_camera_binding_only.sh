@@ -55,7 +55,7 @@ cd /home/zignage
 sleep 1s
 sudo systemctl stop vidireports || true
 set -x
-kill_vidi_processes || true
+kill_vidi_processes
 cd /home/zignage/camerapub
 set -x
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
@@ -151,10 +151,10 @@ echo "attempting to restart service yet again to load modified config"
 sudo systemctl restart vidireports || true
 echo "part 1 successful"
 echo "trying to stop running processes"
-kill_vidi_processes || true
-sleep 15s
+kill_vidi_processes
+sleep 5s
 sudo systemctl stop vidireports
-kill_vidi_processes || true
+kill_vidi_processes
 echo "part 2 of script"
 # Define the main configuration file path
 config_file_2="/home/zignage/.vidireports/config/instance0.cfg"
