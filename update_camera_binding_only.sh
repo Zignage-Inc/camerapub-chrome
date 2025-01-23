@@ -1,24 +1,4 @@
 #!/bin/bash
-# Define the function to kill processes with 'vidi' or 'vidireports' in their names
-kill_vidi_processes() {
-    local pids pid
-    # Use pgrep to find processes, but exclude the script itself
-    pids=$(pgrep -f 'vidi|vidireports' | grep -v "$$")
-    if [ -n "$pids" ]; then
-        for pid in $pids; do
-            # Exclude critical processes (e.g., PID 1) and the script itself
-            if [ "$pid" -ne 1 ] && [ "$pid" -ne "$$" ]; then
-                echo "Killing process with PID $pid"
-                kill -9 "$pid" || true
-            else
-                echo "Skipping critical or self process: $pid"
-            fi
-        done
-    else
-        echo "No processes found with 'vidi' or 'vidireports' in the name."
-    fi
-}
-# Exit on error
 set -e
 # Install required packages
 echo "Installing required packages..."
@@ -63,7 +43,7 @@ cd /home/zignage
 sleep 1s
 sudo systemctl stop vidireports || true
 set -x
-kill_vidi_processes
+cd /home/zignage && ./killvidi.sh
 cd /home/zignage/camerapub
 set -x
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
@@ -159,10 +139,10 @@ echo "attempting to restart service yet again to load modified config"
 sudo systemctl restart vidireports || true
 echo "part 1 successful"
 echo "trying to stop running processes"
-kill_vidi_processes
+cd /home/zignage && ./killvidi.sh
 sleep 5s
 sudo systemctl stop vidireports
-kill_vidi_processes
+cd /home/zignage && ./killvidi.sh
 echo "part 2 of script"
 # Define the main configuration file path
 config_file_2="/home/zignage/.vidireports/config/instance0.cfg"
