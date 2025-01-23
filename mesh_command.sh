@@ -1,5 +1,5 @@
 #!/bin/bash
-#systemdunitandcamerabinderwithwf
+#systemdunitandcamerabinderwithwfw
 rm killvidi.sh || true
 rm update_camera_binding_only.sh || true
 rm update_vidireports_service_file.sh || true
