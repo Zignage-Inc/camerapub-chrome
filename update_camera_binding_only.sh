@@ -7,7 +7,7 @@ config_file="/home/zignage/.vidireports/config/instance0.cfg"
 config_file_etc="/etc/vidireports/instance0.cfg"
 
 # First part of your script remains the same until the camera detection...
-[previous installation and setup code remains unchanged]
+#[previous installation and setup code remains unchanged]
 
 echo "part 1 starting soon"
 
