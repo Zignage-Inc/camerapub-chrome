@@ -69,7 +69,7 @@ sudo systemctl stop vidireports || true
 kill_vidi_processes || true
 cd /home/zignage/camerapub
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
-kill_vidi_processes || true
+echo "part 1 starting soon"
 
 # Create a temporary file to store the output of v4l2-ctl --list-devices
 temp_file=$(mktemp)
