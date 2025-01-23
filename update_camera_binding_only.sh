@@ -1,30 +1,14 @@
 #!/bin/bash
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
 # Define the function to kill processes with 'vidi' or 'vidireports' in their names
 kill_vidi_processes() {
-    # Localize variables to avoid interfering with other parts of the script
-    local pids pid
-    # Capture the list of PIDs
-    pids=$(ps aux | grep -E 'vidi|vidireports' | grep -v grep | awk '{print $2}')
-    # Check if any PIDs were found
+    local pids
+    pids=$(pgrep -f 'vidi|vidireports')
     if [ -n "$pids" ]; then
-        for pid in $pids; do
-            # Double-check that the PID is a number
-            if [ "$pid" -eq "$pid" ] 2>/dev/null; then
-                echo "Killing process with PID $pid"
-                kill -9 $pid
-            else
-                echo "Skipping invalid PID: $pid"
-            fi
-        done
+        echo "Killing processes: $pids"
+        kill -9 $pids
     else
         echo "No processes found with 'vidi' or 'vidireports' in the name."
     fi
-    # Unset the variables to reset them (optional but ensures clean state)
-    unset pids pid
 }
 # Exit on error
 set -e
@@ -70,8 +54,10 @@ cd /home/zignage/camerapub
 cd /home/zignage
 sleep 1s
 sudo systemctl stop vidireports || true
+set -x
 kill_vidi_processes || true
 cd /home/zignage/camerapub
+set -x
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 echo "part 1 starting soon"
 
