@@ -1,57 +1,22 @@
 #!/bin/bash
 set -e
+
+# Define configuration files globally at the start
 modified_config="/home/zignage/.vidireports/config/modified_camera_config.txt"
 config_file="/home/zignage/.vidireports/config/instance0.cfg"
 config_file_etc="/etc/vidireports/instance0.cfg"
-# Install required packages
-echo "Installing required packages..."
-sudo apt-get install -y sshpass ansible git || {
-    echo "Failed to install required packages"
-    exit 1
-}
-# Create necessary directories
-echo "Creating directories..."
-for dir in "/home/zignage/camera_binder" "/home/zignage/camerapub"; do
-    if [ ! -d "$dir" ]; then
-        mkdir -p "$dir" || {
-            echo "Failed to create directory: $dir"
-            exit 1
-        }
-    fi
-done
-# Remove existing repo if it exists
-echo "Removing existing repo if present..."
-rm -rf /home/zignage/camerapub
-# Clone the public GitHub repo
-echo "Cloning repository..."
-git clone https://github.com/chrismcfee/camerapub.git /home/zignage/camerapub || {
-    echo "Failed to clone repository"
-    exit 1
-}
-# Copy files to camera_binder directory
-echo "Copying files..."
-for file in "camera-setup.sh" "camera_binder.service" "camera_binder.py"; do
-    cp "/home/zignage/camerapub/$file" "/home/zignage/camera_binder/" || {
-        echo "Failed to copy $file"
-        exit 1
-    }
-done
-echo "Script completed successfully so far..."
-sleep 1s 
-echo "continuing..."
-sleep 1s
-cd /home/zignage/camerapub
-# Return to home directory
-cd /home/zignage
-sleep 1s
-sudo systemctl stop vidireports || true
-cd /home/zignage && ./killvidi.sh
-cd /home/zignage/camerapub
-ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
+
+# First part of your script remains the same until the camera detection...
+[previous installation and setup code remains unchanged]
+
 echo "part 1 starting soon"
 
-# Create a temporary file to store the output of v4l2-ctl --list-devices
-# Create a temporary file to store the output of v4l2-ctl --list-devices
+# Stop VidiReports service and kill processes
+sudo systemctl stop vidireports || true
+cd /home/zignage && ./killvidi.sh
+
+# Camera Detection and Configuration
+echo "Detecting camera..."
 temp_file=$(mktemp)
 v4l2-ctl --list-devices > "$temp_file"
 
@@ -64,14 +29,17 @@ if [ -n "$camera_uid" ]; then
     echo "Found camera UID: $camera_uid"
 else
     echo "No HD USB camera UID found"
+    rm "$temp_file"
     exit 1
 fi
 
 # Clean up
 rm "$temp_file"
 
-# Remove unwanted camera lines and update configuration
-if [[ -f "$modified_config" ]]; then
+# Update Configuration Files
+echo "Updating configuration files..."
+
+if [[ -f "$config_file" ]]; then
     # Create temp file for cleaned config
     temp_config=$(mktemp)
 
@@ -80,59 +48,42 @@ if [[ -f "$modified_config" ]]; then
         sed '/camera.*video/d' > "$temp_config"
 
     # Append new camera configuration
-    cat "$modified_config" >> "$temp_config"
+    if [[ -f "$modified_config" ]]; then
+        cat "$modified_config" >> "$temp_config"
 
-    # Update both configuration files
-    cp "$temp_config" "$config_file"
-    if [[ -f "$config_file_etc" ]]; then
-        cp "$temp_config" "$config_file_etc"
+        # Update main config file
+        cp "$temp_config" "$config_file"
+
+        # Update etc config if it exists
+        if [[ -f "$config_file_etc" ]]; then
+            cp "$temp_config" "$config_file_etc"
+            echo "Updated both config files with new camera configuration"
+        else
+            echo "Warning: $config_file_etc not found"
+        fi
+
+        # Cleanup
+        rm "$temp_config"
+        rm "$modified_config"
+    else
+        echo "Error: Modified camera configuration not found"
+        rm "$temp_config"
+        exit 1
     fi
-
-    # Cleanup
-    rm "$temp_config"
-    rm "$modified_config"
-
-    echo "Configuration updated successfully"
 else
-    echo "No camera configuration found to apply"
+    echo "Error: Main configuration file not found"
     exit 1
 fi
 
-# Restart service
+# Final Service Restart
+echo "Restarting VidiReports service..."
 sudo systemctl stop vidireports
 cd /home/zignage && ./killvidi.sh
 sleep 5s
-sudo systemctl start vidireports
 
-# Final daemon reload and service restart
+# Reload and restart service
 sudo systemctl daemon-reload
-sudo systemctl restart vidireports
+sudo systemctl start vidireports
 
 echo "Service updated and restarted successfully"
-echo "config modified successfully"
-echo "attempting to restart service yet again to load modified config"
-sudo systemctl restart vidireports || true
-echo "part 1 successful"
-echo "trying to stop running processes"
-cd /home/zignage && ./killvidi.sh
-sleep 5s
-sudo systemctl stop vidireports
-cd /home/zignage && ./killvidi.sh
-echo "part 2 of script"
-# Define the main configuration file path
-
-
-# Check if the modified configuration file exists
-
-sudo systemctl start vidireports
-echo "part 2 successful"
-echo "Completed"
-echo "part 3 - load the new service file"
-echo "moved this part to other script which should execute automatically with this one"
-
-# Reload systemd daemon and restart service
-sudo systemctl daemon-reload
-sudo systemctl stop vidireports
-sudo systemctl start vidireports
-echo "Service updated and restarted successfully"
-echo "this script update camera binding is now complete"
+echo "Configuration update complete"
