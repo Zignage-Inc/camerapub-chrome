@@ -10,11 +10,16 @@ Description=VidiReports Service
 After=network.target
 
 [Service]
-Type=simple
+Type=forking
 ExecStart=/home/zignage/.vidireports/7.7.8.4/./vidireports -d -l /home/zignage/.vidireports/VidiReports.log -c /home/zignage/.vidireports/config/
+ExecStop=/bin/kill -TERM $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=120
+TimeoutStartSec=60
 Restart=on-failure
+RestartSec=30
 User=zignage
-TimeoutStopSec=30
 Group=video
 
 [Install]
