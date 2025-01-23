@@ -3,7 +3,7 @@
 VIDIREPORTS_PATH="/home/zignage/.vidireports/7.7.8.4/./vidireports"
 LOG_PATH="/home/zignage/.vidireports/VidiReports.log"
 CONFIG_PATH="/home/zignage/.vidireports/config/"
-rm /etc/systemd/system/vidireports.service
+rm /etc/systemd/system/vidireports.service || true
 sudo bash -c 'cat > /etc/systemd/system/vidireports.service <<EOL
 [Unit]
 Description=VidiReports Service
