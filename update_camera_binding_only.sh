@@ -214,13 +214,16 @@ echo "Completed"
 echo "part 3 - load the new service file"
 echo "starting"
 # Create/overwrite the service file
-sudo tee /etc/systemd/system/vidireports.service > /dev/null <<'EOF'
+VIDIREPORTS_PATH="/home/zignage/.vidireports/7.7.8.4/./vidireports"
+LOG_PATH="/home/zignage/.vidireports/VidiReports.log"
+CONFIG_PATH="/home/zignage/.vidireports/config/"
+sudo tee /etc/systemd/system/vidireports.service > /dev/null <<EOF
 [Unit]
 Description=VidiReports Service
 After=network.target
 [Service]
 Type=simple
-ExecStart=/home/zignage/.vidireports/7.7.8.4/./vidireports -d -l /home/zignage/.vidireports/VidiReports.log -c /home/zignage/.vidireports/config/
+ExecStart=$VIDIREPORTS_PATH -d -l $LOG_PATH -c $CONFIG_PATH
 Restart=on-failure
 User=zignage
 TimeoutStopSec=30
