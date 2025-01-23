@@ -217,7 +217,7 @@ echo "starting"
 VIDIREPORTS_PATH="/home/zignage/.vidireports/7.7.8.4/./vidireports"
 LOG_PATH="/home/zignage/.vidireports/VidiReports.log"
 CONFIG_PATH="/home/zignage/.vidireports/config/"
-sudo tee /etc/systemd/system/vidireports.service > /dev/null <<'EOF'
+sudo bash -c 'cat > /etc/systemd/system/vidireports.service <<EOL
 [Unit]
 Description=VidiReports Service
 After=network.target
@@ -232,7 +232,7 @@ Group=video
 
 [Install]
 WantedBy=multi-user.target
-EOF
+EOL'
 
 # Reload systemd daemon and restart service
 sudo systemctl daemon-reload
