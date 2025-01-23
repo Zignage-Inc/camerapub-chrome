@@ -226,7 +226,7 @@ User=zignage
 TimeoutStopSec=30
 Group=video
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.targetw
 EOF
 
 # Reload systemd daemon and restart service
