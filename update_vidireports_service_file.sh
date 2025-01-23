@@ -11,7 +11,7 @@ After=network.target
 
 [Service]
 Type=forking
-ExecStart=/home/zignage/.vidireports/7.7.8.4/./vidireports -d -l /home/zignage/.vidireports/VidiReports.log -c /home/zignage/.vidireports/config/
+ExecStart=/home/zignage/.vidireports/./vidireports -d -l /home/zignage/.vidireports/VidiReports.log -c /home/zignage/.vidireports/config/
 ExecStop=/bin/kill -TERM $MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
