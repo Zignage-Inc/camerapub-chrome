@@ -1,0 +1,116 @@
+---
+- name: Install and configure Tailscale
+  hosts: zplayers
+  become: yes
+  vars:
+    skip_apt_update: true
+  vars_files:
+    - vars.yml
+#set -a; source .env; set +a; ansible-playbook your_playbook.yml or dotenv wont work
+#or ansible-vault create vault.yml
+# tailscale_authkey: "your-auth-key-here"
+#   vars_files:
+ #   - vault.yml
+ # then ansible-playbook your_playbook.yml --ask-vault-pass
+  tasks:
+    # Remove existing Tailscale installation
+    - name: Remove existing Tailscale package
+      apt:
+        name: tailscale
+        state: absent
+        purge: yes
+
+    # Remove Tailscale data directory
+    - name: Remove Tailscale data directory
+      file:
+        path: /var/lib/tailscale
+        state: absent
+    # Ignore Chrome GPG check
+    - name: Configure APT to ignore GPG check for Chrome repository
+      copy:
+        dest: /etc/apt/apt.conf.d/99disable-chrome-gpg-check
+        content: |
+          Acquire::AllowInsecureRepositories "true";
+          Acquire::AllowDowngradeToInsecureRepositories "true";
+          APT::Get::AllowUnauthenticated "true";
+
+    # Debian/Ubuntu specific tasks
+    - name: Add Tailscale repository (Debian/Ubuntu)
+      block:
+        - name: Create directory for APT keyrings
+          file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+
+        - name: Download Tailscale GPG key
+          get_url:
+            url: https://pkgs.tailscale.com/stable/ubuntu/focal.gpg
+            dest: /etc/apt/keyrings/tailscale-archive-keyring.gpg
+            mode: '0644'
+
+        - name: Add Tailscale repository
+          apt_repository:
+            repo: "deb [signed-by=/etc/apt/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu focal main"
+            state: present
+            filename: tailscale
+            update_cache: no  # Don't update cache when adding repository
+    # Install Tailscale
+    - name: Install Tailscale (Debian/Ubuntu)
+      apt:
+        name: tailscale
+        state: present
+        update_cache: no
+        allow_unauthenticated: yes
+
+    # Stop Tailscale service
+    - name: Stop Tailscale service
+      systemd:
+        name: tailscaled
+        state: stopped
+
+    # Remove old Tailscale state
+    - name: Remove Tailscale state directory
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /var/lib/tailscale/
+        - /var/cache/tailscale/
+        - /root/.local/share/tailscale/
+
+    # Start Tailscale service
+    - name: Start Tailscale service
+      systemd:
+        name: tailscaled
+        state: started
+        enabled: yes
+
+    # Wait for service to be fully started
+    - name: Wait for Tailscale service to be ready
+      wait_for:
+        timeout: 10
+
+    # Logout from any existing session
+    - name: Logout from Tailscale
+      command: tailscale logout
+      ignore_errors: yes
+
+    # Connect to Tailscale with new state
+    - name: Connect to Tailscale
+      command: "tailscale up --authkey={{ tailscale_authkey }} --reset --accept-routes"
+      register: tailscale_result
+      changed_when: true
+      failed_when: 
+        - tailscale_result.rc != 0
+        - "'already authenticated' not in tailscale_result.stderr"
+
+    # Get Tailscale status
+    - name: Check Tailscale status
+      command: tailscale status
+      register: tailscale_status
+      changed_when: false
+
+    - name: Display Tailscale status
+      debug:
+        var: tailscale_status.stdout_lines
