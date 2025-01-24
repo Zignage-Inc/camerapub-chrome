@@ -42,19 +42,21 @@
             path: /etc/apt/keyrings
             state: directory
             mode: '0755'
+    - name: Add Tailscale repository (Debian/Ubuntu)
+      block:
+        - name: Add Tailscale GPG key
+        apt_key:
+          url: https://pkgs.tailscale.com/stable/ubuntu/focal.gpg
+          state: present
 
-        - name: Download Tailscale GPG key
-          get_url:
-            url: https://pkgs.tailscale.com/stable/ubuntu/focal.gpg
-            dest: /etc/apt/keyrings/tailscale-archive-keyring.gpg
-            mode: '0644'
-
-        - name: Add Tailscale repository
-          apt_repository:
-            repo: "deb [signed-by=/etc/apt/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/ubuntu focal main"
-            state: present
-            filename: tailscale
-            update_cache: no  # Don't update cache when adding repository
+    - name: Add Tailscale repository to sources.list
+      lineinfile:
+        path: /etc/apt/sources.list
+        line: "deb https://pkgs.tailscale.com/stable/ubuntu focal main"
+        state: present
+    - name: Update apt cache
+      apt:
+        update_cache: no
     # Install Tailscale
     - name: Install Tailscale (Debian/Ubuntu)
       apt:
