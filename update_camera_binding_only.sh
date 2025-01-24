@@ -69,10 +69,10 @@ v4l2-ctl --list-devices > "$temp_file"
 camera_raw=$(grep -A1 "HD USB Camera" "$temp_file" | grep "usb" | tr -d '\t' | head -n1)
 
 if [ -n "$camera_raw" ]; then
-    # Extract the USB path and format it correctly
-    # This will match the pattern inside parentheses and format it properly
-    if [[ $camera_raw =~ \(([^)]+)\) ]]; then
-        usb_path=${BASH_REMATCH[1]}
+    # Extract just the USB path using sed
+    usb_path=$(echo "$camera_raw" | sed 's/.*(\(.*\)):.*/\1/')
+
+    if [ -n "$usb_path" ]; then
         # Format the camera string exactly as needed
         camera_uid="usb://$usb_path@1920x1080/MJPG"
         # Write the camera_uid configuration without quotes
