@@ -1,3 +1,9 @@
+#set -a; source .env; set +a; ansible-playbook your_playbook.yml or dotenv wont work
+#or ansible-vault create vault.yml
+# tailscale_authkey: "your-auth-key-here"
+#   vars_files:
+ #   - vault.yml
+ # then ansible-playbook your_playbook.yml --ask-vault-pass
 ---
 - name: Install and configure Tailscale
   hosts: zplayers
@@ -6,12 +12,7 @@
     skip_apt_update: true
   vars_files:
     - vars.yml
-#set -a; source .env; set +a; ansible-playbook your_playbook.yml or dotenv wont work
-#or ansible-vault create vault.yml
-# tailscale_authkey: "your-auth-key-here"
-#   vars_files:
- #   - vault.yml
- # then ansible-playbook your_playbook.yml --ask-vault-pass
+
   tasks:
     # Remove existing Tailscale installation
     - name: Remove existing Tailscale package
@@ -25,6 +26,7 @@
       file:
         path: /var/lib/tailscale
         state: absent
+
     # Ignore Chrome GPG check
     - name: Configure APT to ignore GPG check for Chrome repository
       copy:
@@ -34,29 +36,35 @@
           Acquire::AllowDowngradeToInsecureRepositories "true";
           APT::Get::AllowUnauthenticated "true";
 
-    # Debian/Ubuntu specific tasks
-    - name: Add Tailscale repository (Debian/Ubuntu)
-      block:
-        - name: Create directory for APT keyrings
-          file:
-            path: /etc/apt/keyrings
-            state: directory
-            mode: '0755'
-    - name: Add Tailscale repository (Debian/Ubuntu)
-      block:
-        - name: Add Tailscale GPG key
-        apt_key:
-          url: https://pkgs.tailscale.com/stable/ubuntu/focal.gpg
-          state: present
+    - name: Add Tailscale GPG key
+      apt_key:
+        url: "{{ tailscale_gpg_url }}"
+        state: present
+      vars:
+        tailscale_gpg_url: >-
+          {% if ansible_distribution == 'Debian' %}
+          https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.gpg
+          {% else %}
+          https://pkgs.tailscale.com/stable/ubuntu/focal.gpg
+          {% endif %}
 
     - name: Add Tailscale repository to sources.list
       lineinfile:
         path: /etc/apt/sources.list
-        line: "deb https://pkgs.tailscale.com/stable/ubuntu focal main"
+        line: "{{ tailscale_repo_line }}"
         state: present
+      vars:
+        tailscale_repo_line: >-
+          {% if ansible_distribution == 'Debian' %}
+          deb https://pkgs.tailscale.com/stable/debian {{ ansible_distribution_release }} main
+          {% else %}
+          deb https://pkgs.tailscale.com/stable/ubuntu focal main
+          {% endif %}
+
     - name: Update apt cache
       apt:
-        update_cache: no
+        update_cache: yes
+
     # Install Tailscale
     - name: Install Tailscale (Debian/Ubuntu)
       apt:
@@ -70,7 +78,7 @@
       systemd:
         name: tailscaled
         state: stopped
-#fix for 
+
     # Remove old Tailscale state
     - name: Remove Tailscale state directory
       file:
