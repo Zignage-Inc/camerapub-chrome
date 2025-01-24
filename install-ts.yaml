@@ -70,7 +70,7 @@
       systemd:
         name: tailscaled
         state: stopped
-
+#fix for 
     # Remove old Tailscale state
     - name: Remove Tailscale state directory
       file:
