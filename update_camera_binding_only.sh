@@ -14,7 +14,7 @@ sudo apt-get install -y sshpass ansible git || {
 }
 # Create necessary directories
 echo "Creating directories..."
-for dir in "/home/zignage/camera_binder" "/home/zignage/camerapub"; do
+for dir in "/home/zignage/camera_binder" "/home/zignage/camerapub-chrome"; do
     if [ ! -d "$dir" ]; then
         mkdir -p "$dir" || {
             echo "Failed to create directory: $dir"
@@ -24,17 +24,17 @@ for dir in "/home/zignage/camera_binder" "/home/zignage/camerapub"; do
 done
 # Remove existing repo if it exists
 echo "Removing existing repo if present..."
-rm -rf /home/zignage/camerapub
+rm -rf /home/zignage/camerapub-chrome
 # Clone the public GitHub repo
 echo "Cloning repository..."
-git clone https://github.com/chrismcfee/camerapub.git /home/zignage/camerapub || {
+git clone https://github.com/Zignage-Inc/camerapub-chrome.git /home/zignage/camerapub-chrome || {
     echo "Failed to clone repository"
     exit 1
 }
 # Copy files to camera_binder directory
 echo "Copying files..."
 for file in "camera-setup.sh" "camera_binder.service" "camera_binder.py"; do
-    cp "/home/zignage/camerapub/$file" "/home/zignage/camera_binder/" || {
+    cp "/home/zignage/camerapub-chrome/$file" "/home/zignage/camera_binder/" || {
         echo "Failed to copy $file"
         exit 1
     }
@@ -43,14 +43,14 @@ echo "Script completed successfully so far..."
 sleep 1s 
 echo "continuing..."
 sleep 1s
-cd /home/zignage/camerapub
+cd /home/zignage/camerapub-chrome
 # Return to home directory
 cd /home/zignage
 sleep 1s
 sudo systemctl stop vidireports || true
 set -x
 cd /home/zignage && ./killvidi.sh
-cd /home/zignage/camerapub
+cd /home/zignage/camerapub-chrome
 set -x
 ansible-playbook update_camera_binder.yaml -i invetory-players-version-2.ini
 
