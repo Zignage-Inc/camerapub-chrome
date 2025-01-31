@@ -76,9 +76,9 @@ def load_process_config():
     except FileNotFoundError:
         logging.warning(f"Configuration file not found at {config_path}, using defaults")
         return {
-            "livedooh-player": {
-                "expected_uuid_file": "/etc/camera_binding/livedooh_camera_uuid.txt",
-                "symlink_path": "/dev/camera_livedooh",
+            "chrome-player": {
+                "expected_uuid_file": "/etc/camera_binding/chrome_camera_uuid.txt",
+                "symlink_path": "/dev/camera_chrome",
                 "allow_4k": True,
                 "only_4k": True
             },
