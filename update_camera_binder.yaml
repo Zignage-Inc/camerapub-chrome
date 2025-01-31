@@ -53,7 +53,7 @@
       block:
         - name: Copy service files
           copy:
-            src: "/home/zignage/camerapub/{{ item.src }}"
+            src: "/home/zignage/camerapub-chrome/{{ item.src }}"
             dest: "/etc/systemd/system/{{ item.dest }}"
             mode: '0644'
             force: yes
@@ -63,7 +63,7 @@
 
         - name: Copy other configuration files
           copy:
-            src: "/home/zignage/camerapub/{{ item.src }}"
+            src: "/home/zignage/camerapub-chrome/{{ item.src }}"
             dest: "{{ item.dest }}"
             mode: "{{ item.mode }}"
             force: yes
